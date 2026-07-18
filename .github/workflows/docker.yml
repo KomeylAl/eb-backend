@@ -33,4 +33,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/komeylal/eb-backend:latest
+          tags: ghcr.io/KomeylAl/eb-backend:latest
