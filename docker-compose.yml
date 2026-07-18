@@ -1,0 +1,111 @@
+x-app-env: &app-env
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${APP_KEY:?Set APP_KEY in .env}
+  APP_URL: ${APP_URL:-http://localhost:8080}
+  DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+  DB_HOST: ${DB_HOST:?Set DB_HOST in .env (infrastructure Postgres hostname)}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_DATABASE: ${DB_DATABASE:?Set DB_DATABASE in .env}
+  DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in .env}
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+  SESSION_DRIVER: ${SESSION_DRIVER:-database}
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+  CACHE_STORE: ${CACHE_STORE:-database}
+  LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SMS_IR_API_KEY: ${SMS_IR_API_KEY:-}
+  SMS_IR_LINE_NUMBER: ${SMS_IR_LINE_NUMBER:-}
+  SMS_IR_OTP_TTL_SECONDS: ${SMS_IR_OTP_TTL_SECONDS:-300}
+  SMS_IR_OTP_RESEND_SECONDS: ${SMS_IR_OTP_RESEND_SECONDS:-60}
+
+services:
+  # Lightweight PHP CLI image — build alone:
+  #   docker compose build migrate
+  #   docker compose run --rm migrate
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    env_file: .env
+    environment:
+      <<: *app-env
+      SKIP_OPTIMIZE: "true"
+    command: php artisan migrate --force
+    restart: "no"
+    networks:
+      - infrastructure
+
+  # Full app image (nginx + php-fpm):
+  #   docker compose build app
+  #   docker compose up -d
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    env_file: .env
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      <<: *app-env
+    volumes:
+      - uploads_data:/var/www/html/storage/app/public
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - infrastructure
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    env_file: .env
+    environment:
+      <<: *app-env
+      SKIP_OPTIMIZE: "true"
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    volumes:
+      - uploads_data:/var/www/html/storage/app/public
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - infrastructure
+
+  seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    env_file: .env
+    environment:
+      <<: *app-env
+      SKIP_OPTIMIZE: "true"
+    command: >
+      sh -c "php artisan migrate --force
+      && php artisan db:seed --force"
+    restart: "no"
+    networks:
+      - infrastructure
+
+volumes:
+  uploads_data:
+
+networks:
+  infrastructure:
+    external: true
