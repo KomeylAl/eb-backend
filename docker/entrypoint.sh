@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-cd /var/www/html
+cd /app
 
 mkdir -p \
     storage/framework/cache \
@@ -11,16 +11,14 @@ mkdir -p \
     storage/app/public \
     bootstrap/cache
 
-# Named volumes are often root-owned on first mount.
-if [ "$(id -u)" = "0" ]; then
-    chown -R www-data:www-data storage bootstrap/cache || true
-    chmod -R ug+rwx storage bootstrap/cache || true
-fi
+# The uploads volume is often root-owned on first mount.
+chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
 
-# Only warm caches when starting the long-lived web stack.
-if [ "${SKIP_OPTIMIZE:-false}" != "true" ] && [ -f artisan ] && [ "$#" -gt 0 ]; then
+# Warm the caches only when starting the long-lived web server,
+# not for one-off commands (migrate / queue / seed).
+if [ "${SKIP_OPTIMIZE:-false}" != "true" ] && [ -f artisan ]; then
     case "$1" in
-        /usr/bin/supervisord|supervisord)
+        frankenphp)
             php artisan storage:link --force >/dev/null 2>&1 || true
             php artisan config:cache
             php artisan route:cache

@@ -1,0 +1,15 @@
+{
+	frankenphp
+	order php_server before file_server
+	# TLS is terminated by the global (host) nginx; this container only speaks HTTP.
+	auto_https off
+}
+
+# Listen on a plain HTTP port; the host nginx reverse-proxies to 127.0.0.1:8080.
+:8080 {
+	root * /app/public
+	encode zstd br gzip
+
+	# Serve Laravel through FrankenPHP (classic mode, no Octane).
+	php_server
+}
