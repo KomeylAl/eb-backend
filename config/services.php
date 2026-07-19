@@ -42,4 +42,8 @@ return [
         'otp_resend_seconds' => (int) env('SMS_IR_OTP_RESEND_SECONDS', 60),
     ],
 
+    'clinic' => [
+        'center_phone' => env('CLINIC_CENTER_PHONE'),
+    ],
+
 ];
