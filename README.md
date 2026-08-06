@@ -133,7 +133,7 @@ SMS_IR_LINE_NUMBER=
 | Blog | public read + author mutate |
 | Notifications | index/unread/read + admin store |
 | SMS | `POST /sms/single`, `POST /sms/multi` |
-| Finance | `/payments`, `/invoices`, `POST /invoices/generate` |
+| Finance | `/payments`, `/invoices`, `POST /invoices/suggest-items`, `/finance/*` |
 | About | `GET /about`, `POST /about` |
 | Backup | `GET /backup/{type}` |
 | Restore | `POST /restore/{type}` |

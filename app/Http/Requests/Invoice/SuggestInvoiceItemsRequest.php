@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Invoice;
 
+use App\Enums\UserType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class GenerateInvoiceRequest extends FormRequest
+class SuggestInvoiceItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,10 +16,13 @@ class GenerateInvoiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['required', 'uuid', 'exists:users,id'],
+            'client_id' => [
+                'required',
+                'uuid',
+                Rule::exists('users', 'id')->where('type', UserType::Client->value),
+            ],
             'from_date' => ['required', 'date'],
             'to_date' => ['required', 'date', 'after_or_equal:from_date'],
-            'admin_id' => ['nullable', 'uuid', 'exists:users,id'],
         ];
     }
 }

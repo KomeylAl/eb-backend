@@ -46,6 +46,14 @@ class AppointmentController extends Controller
             $query->whereDate('date', $request->query('date'));
         }
 
+        if ($request->filled('from_date')) {
+            $query->whereDate('date', '>=', $request->query('from_date'));
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('date', '<=', $request->query('to_date'));
+        }
+
         if ($request->filled('doctor_id')) {
             $doctorId = $request->query('doctor_id');
             $query->whereHas('doctors', function ($q) use ($doctorId) {
@@ -91,7 +99,7 @@ class AppointmentController extends Controller
 
     public function store(StoreAppointmentRequest $request, CreateAppointmentAction $action): JsonResponse
     {
-        $appointment = $action->execute($request->validated());
+        $appointment = $action->execute($request->validated(), $request->user()?->id);
 
         return ApiResponse::created(
             AppointmentResource::make($appointment),
@@ -111,7 +119,7 @@ class AppointmentController extends Controller
         Appointment $appointment,
         UpdateAppointmentAction $action,
     ): JsonResponse {
-        $appointment = $action->execute($appointment, $request->validated());
+        $appointment = $action->execute($appointment, $request->validated(), $request->user()?->id);
 
         return ApiResponse::success(
             AppointmentResource::make($appointment),

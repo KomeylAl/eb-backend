@@ -20,8 +20,25 @@ class PaymentController extends Controller
             $query->whereHas('appointment.clients', fn ($q) => $q->where('users.id', $clientId));
         }
 
+        if ($request->filled('doctor_id')) {
+            $doctorId = $request->query('doctor_id');
+            $query->whereHas('appointment.doctors', fn ($q) => $q->where('users.id', $doctorId));
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->query('status'));
+        }
+
+        if ($request->filled('method')) {
+            $query->where('method', $request->query('method'));
+        }
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->query('from_date'));
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->query('to_date'));
         }
 
         if ($request->filled('search')) {
@@ -32,7 +49,7 @@ class PaymentController extends Controller
             });
         }
 
-        $allowed = ['created_at', 'amount', 'status', 'updated_at'];
+        $allowed = ['created_at', 'amount', 'paid_amount', 'status', 'updated_at'];
         $sortBy = $request->query('sort_by', 'created_at');
         if (! in_array($sortBy, $allowed, true)) {
             $sortBy = 'created_at';
@@ -51,5 +68,12 @@ class PaymentController extends Controller
                 'total' => $payments->total(),
             ],
         ]);
+    }
+
+    public function show(Payment $payment): JsonResponse
+    {
+        $payment->load(['appointment.doctors', 'appointment.clients']);
+
+        return ApiResponse::success(PaymentResource::make($payment));
     }
 }

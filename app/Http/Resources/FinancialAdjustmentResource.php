@@ -2,12 +2,12 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Invoice;
+use App\Models\FinancialAdjustment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin Invoice */
-class InvoiceResource extends JsonResource
+/** @mixin FinancialAdjustment */
+class FinancialAdjustmentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -15,18 +15,16 @@ class InvoiceResource extends JsonResource
             'id' => $this->id,
             'client_id' => $this->client_id,
             'admin_id' => $this->admin_id,
-            'number' => $this->number,
+            'appointment_id' => $this->appointment_id,
+            'invoice_id' => $this->invoice_id,
+            'type' => $this->type?->value,
+            'amount' => $this->amount,
+            'reason' => $this->reason,
             'status' => $this->status?->value,
-            'issue_date' => $this->issue_date?->toDateString(),
-            'due_date' => $this->due_date?->toDateString(),
-            'from_date' => $this->from_date?->toDateString(),
-            'to_date' => $this->to_date?->toDateString(),
-            'notes' => $this->notes,
-            'subtotal' => $this->subtotal,
-            'total' => $this->total,
             'client' => ClientResource::make($this->whenLoaded('client')),
             'admin' => AdminResource::make($this->whenLoaded('admin')),
-            'items' => InvoiceItemResource::collection($this->whenLoaded('items')),
+            'appointment' => AppointmentResource::make($this->whenLoaded('appointment')),
+            'invoice' => InvoiceResource::make($this->whenLoaded('invoice')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

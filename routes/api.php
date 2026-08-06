@@ -12,11 +12,14 @@ use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorResourceController;
+use App\Http\Controllers\Api\V1\FinanceController;
+use App\Http\Controllers\Api\V1\FinancialAdjustmentController;
 use App\Http\Controllers\Api\V1\InitAssessmentController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MedicalRecordController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentTransactionController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\RestoreController;
 use App\Http\Controllers\Api\V1\ResumeController;
@@ -119,8 +122,17 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('classes', ClassController::class);
 
             Route::get('payments', [PaymentController::class, 'index']);
-            Route::get('invoices', [InvoiceController::class, 'index']);
-            Route::post('invoices/generate', [InvoiceController::class, 'generate']);
+            Route::get('payments/{payment}', [PaymentController::class, 'show']);
+            Route::get('payment-transactions', [PaymentTransactionController::class, 'index']);
+
+            Route::post('invoices/suggest-items', [InvoiceController::class, 'suggestItems']);
+            Route::apiResource('invoices', InvoiceController::class);
+            Route::apiResource('financial-adjustments', FinancialAdjustmentController::class);
+
+            Route::get('finance/summary', [FinanceController::class, 'summary']);
+            Route::get('finance/reports/by-doctor', [FinanceController::class, 'byDoctor']);
+            Route::get('finance/reports/by-day', [FinanceController::class, 'byDay']);
+            Route::get('finance/reports/compare', [FinanceController::class, 'compare']);
 
             Route::post('about', [AboutController::class, 'upsert']);
 

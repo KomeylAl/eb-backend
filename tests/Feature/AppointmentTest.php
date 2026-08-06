@@ -48,6 +48,7 @@ class AppointmentTest extends TestCase
 
         $this->assertDatabaseHas('payments', [
             'amount' => 500000,
+            'paid_amount' => 500000,
             'status' => PaymentStatus::Paid->value,
         ]);
 

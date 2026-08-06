@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Appointment */
+/** @mixin Appointment */
 class AppointmentResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -18,6 +19,7 @@ class AppointmentResource extends JsonResource
             'date' => $this->date?->toDateString(),
             'time' => $this->time,
             'amount' => $this->amount,
+            'service' => $this->service,
             'status' => $this->status?->value,
             'doctor' => $doctor ? [
                 'id' => $doctor->id,

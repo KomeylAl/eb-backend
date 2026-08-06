@@ -34,6 +34,7 @@ POST /auth/login
 - [ارزیابی‌های اولیه](#ارزیابی‌های-اولیه)
 - [پرداخت‌ها](#پرداخت‌ها)
 - [فاکتورها](#فاکتورها)
+- [پنل حسابداری (راهنمای فرانت)](../accounting/README.md)
 - [درباره ما](#درباره-ما)
 - [اعلان‌ها](#اعلان‌ها)
 - [پیامک](#پیامک)
@@ -295,13 +296,16 @@ GET /appointments
 | `date` | `YYYY-MM-DD` |
 | `doctor_id` | UUID |
 | `client_id` | UUID |
-| `payment_status` | `pending`, `paid`, `unpaid` |
+| `payment_status` | فیلتر روی `payments.status`: `pending`, `paid`, `unpaid`, `partial`, `refunded` |
+| `from_date`, `to_date` | بازه روی `appointment.date` |
 | `sort_by` | `date`, `time`, `amount`, `status`, `created_at` |
 | `sort_direction` | `asc` / `desc` |
 | `per_page` | پیش‌فرض ۱۰، ۱ تا ۱۰۰ |
 | `page` | — |
 
 **پاسخ `200`:** pagination — `AppointmentResource`
+
+در پاسخ، وضعیت پرداخت داخل `payment` است (فیلد سطح‌بالای `payment_status` نیست). `doctor` و `client` به صورت آبجکت تکی برمی‌گردند. فیلد `service` نیز برمی‌گردد.
 
 ### ایجاد
 
@@ -317,15 +321,21 @@ Content-Type: application/json
 | `date` | بله | date |
 | `time` | بله | string، حداکثر ۲۰ |
 | `amount` | بله | integer ≥ 0 |
+| `service` | خیر | نوع خدمت، حداکثر ۲۵۵ |
 | `status` | بله | `pending`, `done` |
-| `payment_status` | بله | `pending`, `paid`, `unpaid` |
+| `payment_status` | بله | `pending`, `paid`, `unpaid`, `partial`, `refunded` |
+| `paid_amount` | برای `partial` بله | integer؛ `0 < paid_amount < amount` |
+| `payment_method` | خیر | `cash`, `card`, `transfer`, `other` |
 
 **پاسخ `201`:** `AppointmentResource`
 
 **رفتار پرداخت:**
 
-- `payment_status=paid` → مبلغ payment = amount نوبت
-- `pending` یا `unpaid` → مبلغ payment = 0
+- `amount` روی payment همیشه برابر مبلغ نوبت است
+- `paid` → `paid_amount = amount`
+- `pending` / `unpaid` / `refunded` → `paid_amount = 0`
+- `partial` → `0 < paid_amount < amount`
+- هر تغییر در لاگ `payment_transactions` ثبت می‌شود
 
 ### جزئیات / ویرایش / حذف
 
@@ -336,7 +346,7 @@ PATCH  /appointments/{appointment}
 DELETE /appointments/{appointment}
 ```
 
-**ویرایش:** تمام فیلدهای create حتی در PATCH الزامی‌اند.
+**ویرایش:** تمام فیلدهای create حتی در PATCH الزامی‌اند (از جمله برای تغییر فقط `payment_status`).
 
 ---
 
@@ -551,18 +561,24 @@ DELETE /assessments/{initAssessment}
 
 ## پرداخت‌ها
 
-### فهرست
+> راهنمای کامل پنل حسابداری: [docs/accounting](../accounting/README.md)
+
+### فهرست / جزئیات
 
 ```http
 GET /payments
+GET /payments/{payment}
 ```
 
 | Query | پیش‌فرض | توضیح |
 |-------|---------|--------|
 | `client_id` | — | UUID |
-| `status` | — | `pending`, `paid`, `unpaid` |
+| `doctor_id` | — | UUID |
+| `status` | — | `pending`, `paid`, `unpaid`, `partial`, `refunded` |
+| `method` | — | `cash`, `card`, `transfer`, `other` |
+| `from_date`, `to_date` | — | روی `created_at` |
 | `search` | — | نام/تلفن client |
-| `sort_by` | `created_at` | `created_at`, `amount`, `status`, `updated_at` |
+| `sort_by` | `created_at` | `created_at`, `amount`, `paid_amount`, `status`, `updated_at` |
 | `sort_direction` | `desc` | — |
 | `per_page` | `15` | ۱ تا ۱۰۰ |
 | `page` | `1` | — |
@@ -573,72 +589,37 @@ GET /payments
 {
   "id": "uuid",
   "appointment_id": "uuid",
-  "status": "pending",
-  "amount": 0,
+  "status": "paid",
+  "amount": 500000,
+  "paid_amount": 500000,
+  "method": "cash",
   "appointment": { "...": "AppointmentResource" },
   "created_at": "...",
   "updated_at": "..."
 }
 ```
 
-> وضعیت پرداخت از طریق ایجاد/ویرایش نوبت مدیریت می‌شود؛ endpoint مستقل create/update ندارد.
+> وضعیت پرداخت فقط از مسیر ایجاد/ویرایش نوبت مدیریت می‌شود. لاگ تغییرات: `GET /payment-transactions`.
 
 ---
 
 ## فاکتورها
 
-### فهرست
+> مدل حسابداری: هدر + اقلام در دیتابیس. چاپ/PDF سمت فرانت است. جزئیات کامل: [راهنمای حسابداری](../accounting/README.md).
 
 ```http
-GET /invoices
+GET    /invoices
+POST   /invoices
+GET    /invoices/{invoice}
+PUT    /invoices/{invoice}
+PATCH  /invoices/{invoice}
+DELETE /invoices/{invoice}
+POST   /invoices/suggest-items
 ```
 
-بدون query و pagination؛ همه فاکتورها به ترتیب نزولی ایجاد.
+**ایجاد — فیلدهای مهم:** `client_id`, `issue_date`, `items[]` با `description`, `unit`, `quantity`, `unit_price` (و اختیاری `appointment_id`).
 
-**پاسخ `200`:** آرایه `InvoiceResource`
-
-### تولید فاکتور
-
-```http
-POST /invoices/generate
-Content-Type: application/json
-```
-
-```json
-{
-  "client_id": "uuid",
-  "from_date": "2026-01-01",
-  "to_date": "2026-01-31",
-  "admin_id": "uuid-optional"
-}
-```
-
-| فیلد | الزامی | توضیح |
-|------|--------|--------|
-| `client_id` | بله | UUID user موجود |
-| `from_date` | بله | date |
-| `to_date` | بله | date، ≥ from_date |
-| `admin_id` | خیر | پیش‌فرض: ادمین فعلی |
-
-**پاسخ `201`:** `InvoiceResource`
-
-```json
-{
-  "id": "uuid",
-  "client_id": "uuid",
-  "admin_id": "uuid",
-  "from_date": "2026-01-01",
-  "to_date": "2026-01-31",
-  "file_path": "invoices/...",
-  "file_url": "https://...",
-  "client": { "...": "ClientResource" },
-  "admin": { "...": "AdminResource" },
-  "created_at": "...",
-  "updated_at": "..."
-}
-```
-
-> خروجی فایل JSON در storage است، نه PDF.
+**پیشنهاد اقلام از نوبت:** `POST /invoices/suggest-items` با `client_id` + بازه تاریخ؛ فاکتور ذخیره نمی‌شود.
 
 ---
 
@@ -1283,4 +1264,5 @@ file: doctors_backup.json
 
 - [APIهای عمومی](../public/README.md)
 - [پنل پزشک / تراپیست](../doctor/README.md)
+- [پنل حسابداری](../accounting/README.md)
 - [فهرست اصلی](../README.md)

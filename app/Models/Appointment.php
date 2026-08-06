@@ -6,6 +6,7 @@ use App\Enums\AppointmentStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
@@ -16,6 +17,7 @@ class Appointment extends Model
         'date',
         'time',
         'amount',
+        'service',
         'status',
     ];
 
@@ -45,6 +47,11 @@ class Appointment extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function financialAdjustments(): HasMany
+    {
+        return $this->hasMany(FinancialAdjustment::class);
     }
 
     public function doctor(): ?User
