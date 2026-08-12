@@ -29,7 +29,16 @@ class AppointmentTest extends TestCase
 
         $client = User::factory()->client()->create();
 
+        $program = \App\Models\TreatmentProgram::query()->create([
+            'client_id' => $client->id,
+            'doctor_id' => $doctor->id,
+            'title' => 'Program',
+            'status' => \App\Enums\TreatmentProgramStatus::Active,
+            'started_at' => now()->toDateString(),
+        ]);
+
         $response = $this->postJson('/api/v1/appointments', [
+            'treatment_program_id' => $program->id,
             'doctor_id' => $doctor->id,
             'client_id' => $client->id,
             'date' => now()->toDateString(),

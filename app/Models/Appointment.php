@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AppointmentStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -14,11 +15,14 @@ class Appointment extends Model
     use HasUuids;
 
     protected $fillable = [
+        'treatment_program_id',
+        'room_id',
         'date',
         'time',
         'amount',
         'service',
         'status',
+        'session_notes',
     ];
 
     protected function casts(): array
@@ -28,6 +32,21 @@ class Appointment extends Model
             'amount' => 'integer',
             'status' => AppointmentStatus::class,
         ];
+    }
+
+    public function treatmentProgram(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentProgram::class);
+    }
+
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
+    }
+
+    public function homeworks(): HasMany
+    {
+        return $this->hasMany(Homework::class);
     }
 
     public function doctors(): BelongsToMany

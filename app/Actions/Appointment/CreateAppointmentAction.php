@@ -7,8 +7,10 @@ use App\Enums\AppointmentStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentTransactionEvent;
+use App\Enums\TreatmentProgramStatus;
 use App\Models\Appointment;
 use App\Models\Payment;
+use App\Models\TreatmentProgram;
 use App\Support\PaymentAmounts;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,12 +24,28 @@ class CreateAppointmentAction
     public function execute(array $data, ?string $actorId = null): Appointment
     {
         return DB::transaction(function () use ($data, $actorId) {
+            $programId = $data['treatment_program_id'] ?? null;
+
+            if (! empty($data['create_treatment_program'])) {
+                $program = TreatmentProgram::query()->create([
+                    'client_id' => $data['client_id'],
+                    'doctor_id' => $data['doctor_id'],
+                    'title' => $data['program_title'] ?? 'برنامه درمان',
+                    'status' => TreatmentProgramStatus::Active,
+                    'started_at' => $data['date'] ?? now()->toDateString(),
+                ]);
+                $programId = $program->id;
+            }
+
             $appointment = Appointment::query()->create([
+                'treatment_program_id' => $programId,
+                'room_id' => $data['room_id'] ?? null,
                 'date' => $data['date'],
                 'time' => $data['time'],
                 'amount' => $data['amount'],
                 'service' => $data['service'] ?? null,
                 'status' => AppointmentStatus::from($data['status']),
+                'session_notes' => $data['session_notes'] ?? null,
             ]);
 
             $now = now();
@@ -72,7 +90,14 @@ class CreateAppointmentAction
                 ],
             );
 
-            return $appointment->load(['doctors', 'clients', 'payment']);
+            return $appointment->load([
+                'doctors',
+                'clients',
+                'payment',
+                'treatmentProgram',
+                'room',
+                'homeworks',
+            ]);
         });
     }
 }

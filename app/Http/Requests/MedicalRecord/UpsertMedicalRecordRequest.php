@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\MedicalRecord;
 
+use App\Models\MedicalRecord;
+use App\Models\TreatmentProgram;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,9 +16,12 @@ class UpsertMedicalRecordRequest extends FormRequest
 
     public function rules(): array
     {
-        $clientId = $this->route('client');
-        $existingId = \App\Models\MedicalRecord::query()
-            ->where('client_id', $clientId)
+        /** @var TreatmentProgram|string|null $program */
+        $program = $this->route('treatment_program');
+        $programId = $program instanceof TreatmentProgram ? $program->id : $program;
+
+        $existingId = MedicalRecord::query()
+            ->where('treatment_program_id', $programId)
             ->value('id');
 
         return [
@@ -29,7 +34,6 @@ class UpsertMedicalRecordRequest extends FormRequest
             'reference_source' => ['nullable', 'string', 'max:255'],
             'admission_date' => ['nullable', 'date'],
             'visit_date' => ['nullable', 'date'],
-            'doctor_id' => ['nullable', 'uuid', 'exists:users,id'],
             'supervisor_id' => ['nullable', 'uuid', 'exists:users,id'],
             'admin_id' => ['nullable', 'uuid', 'exists:users,id'],
             'chief_complaints' => ['nullable', 'string'],

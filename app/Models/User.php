@@ -124,6 +124,16 @@ class User extends Authenticatable
         return $this->hasOne(MedicalRecord::class, 'client_id');
     }
 
+    public function clientTreatmentPrograms(): HasMany
+    {
+        return $this->hasMany(TreatmentProgram::class, 'client_id');
+    }
+
+    public function doctorTreatmentPrograms(): HasMany
+    {
+        return $this->hasMany(TreatmentProgram::class, 'doctor_id');
+    }
+
     public function doctorAppointments(): BelongsToMany
     {
         return $this->belongsToMany(Appointment::class, 'appointment_user', 'doctor_id', 'appointment_id')

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorResourceController;
 use App\Http\Controllers\Api\V1\FinanceController;
 use App\Http\Controllers\Api\V1\FinancialAdjustmentController;
+use App\Http\Controllers\Api\V1\HomeworkController;
 use App\Http\Controllers\Api\V1\InitAssessmentController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MedicalRecordController;
@@ -23,8 +24,10 @@ use App\Http\Controllers\Api\V1\PaymentTransactionController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\RestoreController;
 use App\Http\Controllers\Api\V1\ResumeController;
+use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\SmsController;
 use App\Http\Controllers\Api\V1\TagController;
+use App\Http\Controllers\Api\V1\TreatmentProgramController;
 use App\Http\Controllers\Api\V1\WorkshopController;
 use App\Http\Controllers\Api\V1\WorkshopParticipantController;
 use App\Http\Controllers\Api\V1\WorkshopSessionController;
@@ -67,6 +70,7 @@ Route::prefix('v1')->group(function () {
         // Doctor panel
         Route::middleware('user.type:doctor')->prefix('doctor')->group(function () {
             Route::get('appointments', [AppointmentController::class, 'index']);
+            Route::patch('appointments/{appointment}/session-notes', [AppointmentController::class, 'updateSessionNotes']);
             Route::get('resume', [ResumeController::class, 'showSelf']);
             Route::post('resume', [ResumeController::class, 'storeSelf']);
             Route::get('resources', [DoctorResourceController::class, 'indexSelf']);
@@ -77,6 +81,17 @@ Route::prefix('v1')->group(function () {
             Route::get('assessments', [InitAssessmentController::class, 'index']);
             Route::get('notifications', [NotificationController::class, 'index']);
             Route::get('comments', [CommentController::class, 'indexForDoctor']);
+
+            Route::get('treatment-programs', [TreatmentProgramController::class, 'index']);
+            Route::get('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'show']);
+            Route::get('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'showForProgram']);
+            Route::post('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'updateClinicalForProgram']);
+            Route::put('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'updateClinicalForProgram']);
+
+            Route::get('appointments/{appointment}/homeworks', [HomeworkController::class, 'index']);
+            Route::post('appointments/{appointment}/homeworks', [HomeworkController::class, 'store']);
+            Route::patch('homeworks/{homework}', [HomeworkController::class, 'update']);
+            Route::delete('homeworks/{homework}', [HomeworkController::class, 'destroy']);
         });
 
         // Admin
@@ -107,9 +122,23 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('appointments', AppointmentController::class);
             Route::apiResource('departments', DepartmentController::class)->except(['index', 'show']);
 
-            Route::get('clients/{client}/medical-record', [MedicalRecordController::class, 'getClientRecord']);
-            Route::post('clients/{client}/medical-record', [MedicalRecordController::class, 'store']);
-            Route::put('clients/{client}/medical-record', [MedicalRecordController::class, 'update']);
+            Route::get('treatment-programs', [TreatmentProgramController::class, 'index']);
+            Route::post('treatment-programs', [TreatmentProgramController::class, 'store']);
+            Route::get('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'show']);
+            Route::patch('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'update']);
+            Route::put('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'update']);
+
+            Route::get('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'showForProgram']);
+            Route::post('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'upsertForProgram']);
+            Route::put('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'upsertForProgram']);
+
+            Route::get('appointments/{appointment}/homeworks', [HomeworkController::class, 'index']);
+            Route::post('appointments/{appointment}/homeworks', [HomeworkController::class, 'store']);
+            Route::patch('homeworks/{homework}', [HomeworkController::class, 'update']);
+            Route::delete('homeworks/{homework}', [HomeworkController::class, 'destroy']);
+
+            Route::get('rooms/availability', [RoomController::class, 'availability']);
+            Route::apiResource('rooms', RoomController::class);
 
             Route::get('assessments', [InitAssessmentController::class, 'index']);
             Route::delete('assessments/{initAssessment}', [InitAssessmentController::class, 'destroy']);

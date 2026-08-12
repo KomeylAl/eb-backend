@@ -17,6 +17,7 @@ class MedicalRecord extends Model
         'doctor_id',
         'supervisor_id',
         'admin_id',
+        'treatment_program_id',
         'record_number',
         'reference_source',
         'admission_date',
@@ -41,6 +42,11 @@ class MedicalRecord extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'client_id');
+    }
+
+    public function treatmentProgram(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentProgram::class);
     }
 
     public function companion(): BelongsTo

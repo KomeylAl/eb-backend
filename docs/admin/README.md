@@ -297,6 +297,8 @@ GET /appointments
 | `doctor_id` | UUID |
 | `client_id` | UUID |
 | `payment_status` | فیلتر روی `payments.status`: `pending`, `paid`, `unpaid`, `partial`, `refunded` |
+| `treatment_program_id` | UUID برنامه درمان |
+| `room_id` | UUID اتاق |
 | `from_date`, `to_date` | بازه روی `appointment.date` |
 | `sort_by` | `date`, `time`, `amount`, `status`, `created_at` |
 | `sort_direction` | `asc` / `desc` |
@@ -316,13 +318,18 @@ Content-Type: application/json
 
 | فیلد | الزامی | توضیح |
 |------|--------|--------|
-| `doctor_id` | بله | UUID کاربر `doctor` |
-| `client_id` | بله | UUID کاربر `client` |
+| `treatment_program_id` | بله* | UUID برنامه درمان (`required_without:create_treatment_program`) |
+| `create_treatment_program` | خیر | اگر `true` باشد برنامه جدید برای همان زوج مراجع/درمانگر ساخته می‌شود |
+| `program_title` | خیر | عنوان برنامه هنگام ایجاد inline |
+| `doctor_id` | بله | UUID کاربر `doctor` — باید با برنامه یکی باشد |
+| `client_id` | بله | UUID کاربر `client` — باید با برنامه یکی باشد |
+| `room_id` | خیر | UUID اتاق؛ تداخل همان `date`+`time` برای نوبت‌های `pending` رد می‌شود |
 | `date` | بله | date |
 | `time` | بله | string، حداکثر ۲۰ |
 | `amount` | بله | integer ≥ 0 |
 | `service` | خیر | نوع خدمت، حداکثر ۲۵۵ |
 | `status` | بله | `pending`, `done` |
+| `session_notes` | خیر | یادداشت جلسه (نوبت = جلسه) |
 | `payment_status` | بله | `pending`, `paid`, `unpaid`, `partial`, `refunded` |
 | `paid_amount` | برای `partial` بله | integer؛ `0 < paid_amount < amount` |
 | `payment_method` | خیر | `cash`, `card`, `transfer`, `other` |
@@ -346,7 +353,89 @@ PATCH  /appointments/{appointment}
 DELETE /appointments/{appointment}
 ```
 
-**ویرایش:** تمام فیلدهای create حتی در PATCH الزامی‌اند (از جمله برای تغییر فقط `payment_status`).
+**ویرایش:** تمام فیلدهای create (به‌جز `create_treatment_program`) حتی در PATCH الزامی‌اند. `treatment_program_id` و `room_id` و `session_notes` قابل ویرایش‌اند.
+
+---
+
+## برنامه‌های درمان
+
+هر برنامه درمان یک زوج مراجع+درمانگر است. پرونده پزشکی ۱:۱ به برنامه وصل می‌شود (نه به مراجع).
+
+### فهرست / ایجاد
+
+```http
+GET  /treatment-programs
+POST /treatment-programs
+```
+
+| Query (GET) | توضیح |
+|-------------|--------|
+| `client_id` | UUID |
+| `doctor_id` | UUID |
+| `status` | `active`, `completed`, `paused`, `cancelled` |
+| `search` | عنوان |
+| `per_page`, `page` | — |
+
+| فیلد (POST) | الزامی | توضیح |
+|-------------|--------|--------|
+| `client_id` | بله | UUID |
+| `doctor_id` | بله | UUID پزشک |
+| `title` | خیر | حداکثر ۲۵۵ |
+| `status` | خیر | پیش‌فرض `active` |
+| `started_at`, `ended_at` | خیر | date |
+
+### جزئیات / ویرایش
+
+```http
+GET   /treatment-programs/{treatment_program}
+PATCH /treatment-programs/{treatment_program}
+PUT   /treatment-programs/{treatment_program}
+```
+
+---
+
+## تکالیف جلسه (Homework)
+
+تکالیف زیر نوبت/جلسه مدیریت می‌شوند. پنل مراجع فعلاً وجود ندارد؛ وضعیت انجام توسط ادمین/درمانگر ثبت می‌شود.
+
+```http
+GET    /appointments/{appointment}/homeworks
+POST   /appointments/{appointment}/homeworks
+PATCH  /homeworks/{homework}
+DELETE /homeworks/{homework}
+```
+
+| فیلد (POST/PATCH) | الزامی | توضیح |
+|-------------------|--------|--------|
+| `type` | بله (create) | `text`, `file`, `link`, `checklist` |
+| `title` | بله (create) | — |
+| `body` | خیر | — |
+| `meta` | خیر | JSON (مثلاً آیتم‌های checklist) |
+| `status` | خیر | `assigned`, `done`, `cancelled` |
+| `due_at` | خیر | datetime |
+
+---
+
+## اتاق‌ها
+
+```http
+GET    /rooms
+POST   /rooms
+GET    /rooms/{room}
+PATCH  /rooms/{room}
+PUT    /rooms/{room}
+DELETE /rooms/{room}
+GET    /rooms/availability?date=YYYY-MM-DD
+```
+
+| فیلد | الزامی | توضیح |
+|------|--------|--------|
+| `name` | بله | — |
+| `code` | خیر | unique |
+| `capacity` | خیر | integer |
+| `is_active` | خیر | boolean |
+
+`availability` لیست اتاق‌های فعال و اسلات‌های اشغال‌شده همان روز (نوبت‌های `pending` با `room_id`) را برمی‌گرداند.
 
 ---
 
@@ -458,10 +547,12 @@ DELETE /doctors/{doctor}/resources/{doctorResource}
 
 ## پرونده پزشکی
 
+پرونده پزشکی به **برنامه درمان** وصل است (۱ پرونده / برنامه). مسیرهای قدیمی `clients/{client}/medical-record` حذف شده‌اند.
+
 ### مشاهده
 
 ```http
-GET /clients/{client}/medical-record
+GET /treatment-programs/{treatment_program}/medical-record
 ```
 
 **پاسخ `200`:** `MedicalRecordResource` یا `data: null`
@@ -469,8 +560,8 @@ GET /clients/{client}/medical-record
 ### ایجاد / ویرایش (Upsert)
 
 ```http
-POST /clients/{client}/medical-record
-PUT  /clients/{client}/medical-record
+POST /treatment-programs/{treatment_program}/medical-record
+PUT  /treatment-programs/{treatment_program}/medical-record
 Content-Type: multipart/form-data
 ```
 
@@ -479,7 +570,7 @@ Content-Type: multipart/form-data
 | `record_number` | بله | حداکثر ۱۰۰، یکتا |
 | `reference_source` | خیر | حداکثر ۲۵۵ |
 | `admission_date`, `visit_date` | خیر | date |
-| `doctor_id`, `supervisor_id`, `admin_id` | خیر | UUID user موجود |
+| `doctor_id`, `supervisor_id`, `admin_id` | خیر | UUID user موجود؛ در صورت خالی بودن از برنامه مشتق می‌شود |
 | `chief_complaints`, `present_illness`, `past_history`, `family_history`, `personal_history`, `mse`, `diagnosis` | خیر | string |
 | `companion_name` | خیر | حداکثر ۲۵۵ |
 | `companion_phone` | خیر | حداکثر ۲۰ |
@@ -491,39 +582,11 @@ Content-Type: multipart/form-data
 
 **نکات:**
 
-- برای هر client فقط یک پرونده
+- برای هر برنامه درمان فقط یک پرونده (`treatment_program_id` unique)
 - تصاویر جدید **append** می‌شوند (جایگزین نمی‌شوند)
 - API حذف تصویر/پرونده ندارد
 
-**ساختار پاسخ:**
-
-```json
-{
-  "id": "uuid",
-  "record_number": "REC-001",
-  "reference_source": null,
-  "admission_date": null,
-  "visit_date": null,
-  "chief_complaints": null,
-  "present_illness": null,
-  "past_history": null,
-  "family_history": null,
-  "personal_history": null,
-  "mse": null,
-  "diagnosis": null,
-  "client": { "...": "ClientResource" },
-  "companion": { "name": null, "phone": null, "address": null, "birth_date": null },
-  "doctor": { "...": "DoctorResource" },
-  "supervisor": { "...": "DoctorResource" },
-  "admin": { "...": "AdminResource" },
-  "images": [
-    { "id": "uuid", "medical_record_id": "uuid", "file_path": "...", "url": "https://...", "created_at": "...", "updated_at": "..." }
-  ],
-  "created_at": "...",
-  "updated_at": "..."
-}
-```
-
+**ساختار پاسخ:** شامل `treatment_program_id` و در صورت load شدن `treatment_program`؛ `client`/`doctor` از طریق برنامه یا فیلدهای denormalized برمی‌گردند.
 ---
 
 ## ارزیابی‌های اولیه

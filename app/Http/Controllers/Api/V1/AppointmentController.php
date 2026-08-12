@@ -18,11 +18,19 @@ class AppointmentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Appointment::query()->with(['doctors', 'clients', 'payment']);
+        $query = Appointment::query()->with(['doctors', 'clients', 'payment', 'treatmentProgram', 'room', 'homeworks']);
 
         if ($request->user()?->type === UserType::Doctor) {
             $doctorId = $request->user()->id;
             $query->whereHas('doctors', fn ($q) => $q->where('users.id', $doctorId));
+        }
+
+        if ($request->filled('treatment_program_id')) {
+            $query->where('treatment_program_id', $request->query('treatment_program_id'));
+        }
+
+        if ($request->filled('room_id')) {
+            $query->where('room_id', $request->query('room_id'));
         }
 
         if ($request->filled('search')) {
@@ -109,7 +117,7 @@ class AppointmentController extends Controller
 
     public function show(Appointment $appointment): JsonResponse
     {
-        $appointment->load(['doctors', 'clients', 'payment']);
+        $appointment->load(['doctors', 'clients', 'payment', 'treatmentProgram', 'room', 'homeworks']);
 
         return ApiResponse::success(AppointmentResource::make($appointment));
     }
@@ -124,6 +132,32 @@ class AppointmentController extends Controller
         return ApiResponse::success(
             AppointmentResource::make($appointment),
             'Appointment updated successfully.',
+        );
+    }
+
+    public function updateSessionNotes(
+        \App\Http\Requests\Appointment\UpdateSessionNotesRequest $request,
+        Appointment $appointment,
+    ): JsonResponse {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $owns = $appointment->doctors()->where('users.id', $user->id)->exists()
+            || $appointment->treatmentProgram()->where('doctor_id', $user->id)->exists();
+
+        if ($user->type !== UserType::Doctor || ! $owns) {
+            abort(403, 'Forbidden.');
+        }
+
+        $appointment->update([
+            'session_notes' => $request->validated('session_notes'),
+        ]);
+
+        return ApiResponse::success(
+            AppointmentResource::make(
+                $appointment->fresh()->load(['doctors', 'clients', 'payment', 'treatmentProgram', 'room', 'homeworks'])
+            ),
+            'Session notes updated successfully.',
         );
     }
 

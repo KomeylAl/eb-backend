@@ -36,6 +36,7 @@ Accept: application/json
 - [منابع](#منابع)
 - [ارزیابی‌های اولیه](#ارزیابی‌های-اولیه)
 - [نظرات تأییدشده درباره من](#نظرات-تأییدشده-درباره-من)
+- [پرونده پزشکی مراجع](#پرونده-پزشکی-مراجع)
 - [اعلان‌ها](#اعلان‌ها)
 - [Endpointهای مشترک](#endpointهای-مشترک)
 
@@ -134,6 +135,44 @@ Authorization: Bearer {token}
 ```
 
 > پزشک endpoint ایجاد/ویرایش/حذف نوبت ندارد. مدیریت نوبت‌ها فقط از پنل ادمین انجام می‌شود.
+> نوبت = جلسه: فیلدهای `treatment_program_id`, `room`, `session_notes` و `homeworks` در پاسخ نوبت موجودند.
+
+### به‌روزرسانی یادداشت جلسه
+
+```http
+PATCH /doctor/appointments/{appointment}/session-notes
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+| فیلد | الزامی | توضیح |
+|------|--------|--------|
+| `session_notes` | خیر | متن یادداشت جلسه |
+
+فقط روی نوبت‌های خود پزشک.
+
+### تکالیف جلسه
+
+```http
+GET    /doctor/appointments/{appointment}/homeworks
+POST   /doctor/appointments/{appointment}/homeworks
+PATCH  /doctor/homeworks/{homework}
+DELETE /doctor/homeworks/{homework}
+```
+
+همان فیلدهای ادمین (`type`, `title`, `body`, `meta`, `status`, `due_at`). فقط برای نوبت‌های پزشک جاری.
+
+---
+
+## برنامه‌های درمان
+
+```http
+GET /doctor/treatment-programs
+GET /doctor/treatment-programs/{treatment_program}
+Authorization: Bearer {token}
+```
+
+فقط برنامه‌هایی که `doctor_id` برابر پزشک جاری است.
 
 ---
 
@@ -399,6 +438,59 @@ Authorization: Bearer {token}
 
 ---
 
+## پرونده پزشکی مراجع
+
+پرونده پزشکی به **برنامه درمان** وصل است. پزشک فقط برنامه‌های خودش را می‌بیند و فقط بخش بالینی را ویرایش می‌کند.
+
+فیلدهای پذیرش، همراه، شماره پرونده، منبع ارجاع و انتساب درمانگر/سوپروایزر/پذیرش‌کننده برای پزشک **فقط خواندنی** هستند.
+
+### مشاهده
+
+```http
+GET /doctor/treatment-programs/{treatment_program}/medical-record
+Authorization: Bearer {token}
+```
+
+**پاسخ `200`:**
+
+```json
+{
+  "message": "Success",
+  "data": {
+    "client": { "...": "ClientResource" },
+    "record": { "...": "MedicalRecordResource" }
+  }
+}
+```
+
+اگر پرونده هنوز ساخته نشده باشد، `record` برابر `null` است و `client` همچنان برگردانده می‌شود.
+
+دسترسی غیرمجاز (برنامه متعلق به پزشک دیگر) → `403`.
+
+### ویرایش بخش بالینی
+
+```http
+POST /doctor/treatment-programs/{treatment_program}/medical-record
+PUT  /doctor/treatment-programs/{treatment_program}/medical-record
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+```
+
+| فیلد | الزامی | توضیح |
+|------|--------|--------|
+| `visit_date` | خیر | date |
+| `chief_complaints`, `present_illness`, `past_history`, `family_history`, `personal_history`, `mse`, `diagnosis` | خیر | string |
+| `images` | خیر | array تصویر (jpg/jpeg/png/webp، هر کدام ≤ ۵ MB) — append می‌شود |
+
+سایر فیلدها (مثل `record_number`, `companion_*`, `admin_id`, ...) در صورت ارسال **نادیده گرفته می‌شوند**.
+
+اگر پرونده وجود نداشته باشد، با شماره پرونده خودکار ساخته می‌شود و به همان برنامه وصل می‌شود.
+
+**پاسخ `200`:** `MedicalRecordResource`
+
+> مسیرهای قدیمی `doctor/clients/{client}/medical-record` حذف شده‌اند.
+---
+
 ## اعلان‌ها
 
 ### فهرست اعلان‌های پزشک
@@ -440,6 +532,8 @@ Authorization: Bearer {token}
 |--------|-------------|
 | مشاهده نوبت‌های خود | ✅ |
 | ایجاد/ویرایش نوبت | ❌ (ادمین) |
+| ویرایش یادداشت جلسه / تکالیف نوبت خود | ✅ |
+| مشاهده برنامه‌های درمان خود | ✅ |
 | مشاهده/ویرایش رزومه خود | ✅ |
 | مشاهده منابع خود | ✅ |
 | ایجاد/ویرایش/حذف منابع | ✅ |
@@ -448,6 +542,10 @@ Authorization: Bearer {token}
 | حذف ارزیابی | ❌ (ادمین) |
 | مشاهده نظرات تأییدشده درباره خود | ✅ |
 | تأیید/حذف نظر | ❌ (ادمین) |
+| مشاهده پرونده پزشکی برنامه درمان خود | ✅ |
+| ویرایش بخش بالینی پرونده برنامه | ✅ |
+| ویرایش پذیرش / همراه / انتساب پرونده | ❌ (ادمین) |
+| مدیریت اتاق‌ها | ❌ (ادمین) |
 | مشاهده اعلان‌ها | ✅ |
 | ایجاد اعلان | ❌ (ادمین) |
 

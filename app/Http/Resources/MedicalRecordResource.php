@@ -12,6 +12,7 @@ class MedicalRecordResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'treatment_program_id' => $this->treatment_program_id,
             'client_id' => $this->client_id,
             'companion_id' => $this->companion_id,
             'doctor_id' => $this->doctor_id,
@@ -28,6 +29,7 @@ class MedicalRecordResource extends JsonResource
             'personal_history' => $this->personal_history,
             'mse' => $this->mse,
             'diagnosis' => $this->diagnosis,
+            'treatment_program' => TreatmentProgramResource::make($this->whenLoaded('treatmentProgram')),
             'client' => ClientResource::make($this->whenLoaded('client')),
             'companion' => CompanionResource::make($this->whenLoaded('companion')),
             'doctor' => DoctorResource::make($this->whenLoaded('doctor')),

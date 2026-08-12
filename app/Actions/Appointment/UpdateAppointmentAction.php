@@ -21,11 +21,14 @@ class UpdateAppointmentAction
     {
         return DB::transaction(function () use ($appointment, $data, $actorId) {
             $appointment->update([
+                'treatment_program_id' => $data['treatment_program_id'],
+                'room_id' => $data['room_id'] ?? null,
                 'date' => $data['date'],
                 'time' => $data['time'],
                 'amount' => $data['amount'],
                 'service' => $data['service'] ?? null,
                 'status' => AppointmentStatus::from($data['status']),
+                'session_notes' => $data['session_notes'] ?? $appointment->session_notes,
             ]);
 
             DB::table('appointment_user')
@@ -101,7 +104,7 @@ class UpdateAppointmentAction
                 );
             }
 
-            return $appointment->load(['doctors', 'clients', 'payment']);
+            return $appointment->load(['doctors', 'clients', 'payment', 'treatmentProgram', 'room', 'homeworks']);
         });
     }
 }
