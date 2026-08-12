@@ -64,7 +64,13 @@ class WorkshopController extends Controller
 
     public function show(Workshop $workshop): JsonResponse
     {
-        $workshop->load(['sessions', 'participants']);
+        $workshop->load([
+            'sessions',
+            'participants',
+            'comments' => fn ($q) => $q->approved()->orderByDesc('created_at'),
+        ])
+            ->loadCount(['comments as comments_count' => fn ($q) => $q->approved()])
+            ->loadAvg(['comments as rating_avg' => fn ($q) => $q->approved()], 'rating');
 
         return ApiResponse::success(WorkshopResource::make($workshop));
     }

@@ -20,7 +20,8 @@ class PostController extends Controller
     {
         $query = Post::query()
             ->with(['author', 'category', 'tags'])
-            ->withCount('comments');
+            ->withCount(['comments as comments_count' => fn ($q) => $q->approved()])
+            ->withAvg(['comments as rating_avg' => fn ($q) => $q->approved()], 'rating');
 
         if ($request->filled('search')) {
             $search = $request->query('search');
@@ -78,7 +79,14 @@ class PostController extends Controller
 
     public function show(Post $post): JsonResponse
     {
-        $post->load(['author', 'category', 'tags', 'comments'])->loadCount('comments');
+        $post->load([
+            'author',
+            'category',
+            'tags',
+            'comments' => fn ($q) => $q->approved()->orderByDesc('created_at'),
+        ])
+            ->loadCount(['comments as comments_count' => fn ($q) => $q->approved()])
+            ->loadAvg(['comments as rating_avg' => fn ($q) => $q->approved()], 'rating');
 
         return ApiResponse::success(PostResource::make($post));
     }

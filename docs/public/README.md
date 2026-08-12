@@ -18,7 +18,7 @@
 - [پست‌ها](#پست‌ها)
 - [کارگاه‌ها](#کارگاه‌ها)
 - [ثبت ارزیابی اولیه](#ثبت-ارزیابی-اولیه)
-- [ثبت کامنت](#ثبت-کامنت)
+- [نظرات و امتیازها](#نظرات-و-امتیازها)
 - [اعلان‌ها (مشترک)](#اعلان‌ها-مشترک)
 
 ---
@@ -283,6 +283,11 @@ GET /doctors/{doctor}
 
 - `resume`: رزومه پزشک (در صورت وجود)
 - `doctor_resources[]`: منابع پزشک
+- `comments[]`: فقط نظرات **تأییدشده**
+- `comments_count`: تعداد نظرات تأییدشده
+- `rating_avg`: میانگین امتیاز نظرات تأییدشده (یا `null`)
+
+**ساختار هر آیتم `comments[]`:** مشابه [نظرات و امتیازها](#نظرات-و-امتیازها) — بدون فیلد `phone`.
 
 **ساختار `resume`:**
 
@@ -423,6 +428,7 @@ GET /posts
   "category": { "id": "...", "name": "...", "..." : "..." },
   "tags": [],
   "comments_count": 3,
+  "rating_avg": 4.5,
   "created_at": "...",
   "updated_at": "..."
 }
@@ -436,23 +442,24 @@ GET /posts
 GET /posts/{post}
 ```
 
-**پاسخ `200`:** علاوه بر فیلدهای فهرست، آرایه `comments[]`:
+**پاسخ `200`:** علاوه بر فیلدهای فهرست، آرایه `comments[]` فقط شامل نظرات **تأییدشده** است. فیلد `phone` در پاسخ عمومی وجود ندارد.
 
 ```json
 {
   "id": "uuid",
-  "post_id": "uuid",
+  "commentable_type": "post",
+  "commentable_id": "uuid",
   "user_id": null,
-  "body": "متن کامنت",
-  "author_name": "نام",
-  "email": "email@example.com",
-  "approved": false,
+  "first_name": "علی",
+  "last_name": "رضایی",
+  "author_name": "علی رضایی",
+  "body": "متن نظر",
+  "rating": 5,
+  "approved": true,
   "created_at": "...",
   "updated_at": "..."
 }
 ```
-
-> در نمایش عمومی، کامنت‌های تأییدنشده نیز برگردانده می‌شوند. برای UI سایت فقط `approved: true` را نمایش دهید.
 
 ---
 
@@ -542,6 +549,12 @@ GET /workshops/{workshop}
 
 > اطلاعات شرکت‌کنندگان در endpoint عمومی قابل مشاهده است. در UI سایت فقط داده‌های لازم را نمایش دهید.
 
+همچنین در جزئیات کارگاه:
+
+- `comments[]`: فقط نظرات **تأییدشده**
+- `comments_count`: تعداد نظرات تأییدشده
+- `rating_avg`: میانگین امتیاز نظرات تأییدشده (یا `null`)
+
 ---
 
 ## ثبت ارزیابی اولیه
@@ -617,7 +630,44 @@ Content-Type: application/json
 
 ---
 
-## ثبت کامنت
+## نظرات و امتیازها
+
+سیستم نظر/امتیاز **polymorphic** است و روی این اهداف کار می‌کند:
+
+| `commentable_type` | هدف | مثال صفحه |
+|--------------------|-----|-----------|
+| `doctor` | درمانگر / پزشک (`User` با نقش doctor) | صفحه درمانگر |
+| `post` | مقاله وبلاگ | صفحه مقاله |
+| `workshop` | کارگاه | صفحه کارگاه |
+
+> برای افزودن هدف جدید در آینده فقط کافی است نوع جدید در بک‌اند ثبت شود؛ قرارداد API (`commentable_type` + `commentable_id`) ثابت می‌ماند.
+
+### قوانین کسب‌وکار
+
+- ثبت نظر برای همه (مهمان و کاربر واردشده) باز است.
+- فیلدهای الزامی: `first_name`, `last_name`, `phone`, `body`, `rating` (۱ تا ۵), `commentable_type`, `commentable_id`.
+- نظر بعد از ثبت همیشه `approved: false` است و تا تأیید ادمین در سایت عمومی دیده نمی‌شود.
+- `phone` هرگز در پاسخ‌های عمومی برگردانده نمی‌شود (فقط ادمین می‌بیند).
+- اگر با همان `phone` قبلاً کاربر `client` ساخته شده باشد، نظر به او لینک می‌شود تا بعداً در `/comments/mine` دیده شود.
+
+### فهرست نظرات تأییدشده (عمومی)
+
+```http
+GET /comments?commentable_type=doctor&commentable_id={uuid}
+```
+
+| Query | الزامی | پیش‌فرض | توضیح |
+|-------|--------|---------|--------|
+| `commentable_type` | **بله** (عمومی) | — | `doctor` \| `post` \| `workshop` |
+| `commentable_id` | **بله** (عمومی) | — | UUID هدف |
+| `per_page` | خیر | `20` | — |
+| `page` | خیر | `1` | — |
+
+**پاسخ `200`:** pagination — آیتم‌ها بدون `phone`.
+
+> ادمین با توکن می‌تواند همین مسیر را بدون فیلتر اجباری و با فیلترهای بیشتر صدا بزند؛ جزئیات در [پنل ادمین](../admin/README.md#مدیریت-کامنت‌ها).
+
+### ثبت نظر
 
 ```http
 POST /comments
@@ -628,20 +678,25 @@ Content-Type: application/json
 
 | فیلد | نوع | الزامی | توضیح |
 |------|-----|--------|--------|
-| `post_id` | uuid | **بله** | UUID پست موجود |
-| `body` | string | **بله** | متن کامنت |
-| `author_name` | string | خیر | حداکثر ۲۵۵ |
-| `email` | email | خیر | حداکثر ۲۵۵ |
-| `approved` | boolean | خیر | پیش‌فرض: `false` |
+| `commentable_type` | string | **بله** | `doctor` \| `post` \| `workshop` |
+| `commentable_id` | uuid | **بله** | UUID هدف موجود |
+| `first_name` | string | **بله** | نام — حداکثر ۲۵۵ |
+| `last_name` | string | **بله** | نام خانوادگی — حداکثر ۲۵۵ |
+| `phone` | string | **بله** | شماره موبایل — حداکثر ۲۰؛ عمومی نمایش داده نمی‌شود |
+| `body` | string | **بله** | متن نظر |
+| `rating` | integer | **بله** | امتیاز ۱ تا ۵ |
 
 **نمونه درخواست:**
 
 ```json
 {
-  "post_id": "uuid",
-  "body": "کامنت من",
-  "author_name": "کاربر",
-  "email": "user@example.com"
+  "commentable_type": "doctor",
+  "commentable_id": "uuid",
+  "first_name": "علی",
+  "last_name": "رضایی",
+  "phone": "09121234567",
+  "body": "جلسه بسیار مفیدی بود",
+  "rating": 5
 }
 ```
 
@@ -652,11 +707,14 @@ Content-Type: application/json
   "message": "Comment created successfully.",
   "data": {
     "id": "uuid",
-    "post_id": "uuid",
+    "commentable_type": "doctor",
+    "commentable_id": "uuid",
     "user_id": null,
-    "body": "کامنت من",
-    "author_name": "کاربر",
-    "email": "user@example.com",
+    "first_name": "علی",
+    "last_name": "رضایی",
+    "author_name": "علی رضایی",
+    "body": "جلسه بسیار مفیدی بود",
+    "rating": 5,
     "approved": false,
     "user": null,
     "created_at": "...",
@@ -665,7 +723,20 @@ Content-Type: application/json
 }
 ```
 
-> اگر کاربر واردشده باشد، `user_id` از توکن گرفته می‌شود.
+> ارسال `approved` از سمت کلاینت نادیده گرفته می‌شود و همیشه `false` ذخیره می‌شود.
+
+### نظرات من (مراجع واردشده)
+
+برای وقتی که پنل کلاینت آماده شد:
+
+```http
+GET /comments/mine
+Authorization: Bearer {token}
+```
+
+نظراتی که `user_id` برابر کاربر جاری است یا `phone` نظر با تلفن کاربر یکی است.
+
+**پاسخ `200`:** pagination
 
 ---
 

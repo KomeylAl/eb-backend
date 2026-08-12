@@ -50,6 +50,7 @@ Route::prefix('v1')->group(function () {
     Route::get('workshops', [WorkshopController::class, 'index']);
     Route::get('workshops/{workshop}', [WorkshopController::class, 'show']);
     Route::post('assessments', [InitAssessmentController::class, 'store']);
+    Route::get('comments', [CommentController::class, 'index']);
     Route::post('comments', [CommentController::class, 'store']);
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -61,6 +62,7 @@ Route::prefix('v1')->group(function () {
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/unread', [NotificationController::class, 'unread']);
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::get('comments/mine', [CommentController::class, 'mine']);
 
         // Doctor panel
         Route::middleware('user.type:doctor')->prefix('doctor')->group(function () {
@@ -74,6 +76,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('resources/{doctorResource}', [DoctorResourceController::class, 'destroySelf']);
             Route::get('assessments', [InitAssessmentController::class, 'index']);
             Route::get('notifications', [NotificationController::class, 'index']);
+            Route::get('comments', [CommentController::class, 'indexForDoctor']);
         });
 
         // Admin
@@ -165,9 +168,10 @@ Route::prefix('v1')->group(function () {
                 Route::post('about', [RestoreController::class, 'about']);
             });
 
-            Route::get('comments', [CommentController::class, 'index']);
             Route::get('comments/{comment}', [CommentController::class, 'show']);
             Route::patch('comments/{comment}', [CommentController::class, 'update']);
+            Route::patch('comments/{comment}/approve', [CommentController::class, 'approve']);
+            Route::patch('comments/{comment}/unapprove', [CommentController::class, 'unapprove']);
             Route::delete('comments/{comment}', [CommentController::class, 'destroy']);
         });
 

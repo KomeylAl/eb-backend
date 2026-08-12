@@ -1021,20 +1021,28 @@ DELETE /posts/{post}
 
 ## مدیریت کامنت‌ها
 
-### فهرست
+نظرات برای درمانگر (`doctor`)، مقاله (`post`) و کارگاه (`workshop`) ثبت می‌شوند و تا تأیید ادمین در سایت عمومی نمایش داده نمی‌شوند.
+
+### فهرست (ادمین)
 
 ```http
 GET /comments
+Authorization: Bearer {token}
 ```
+
+با توکن ادمین، فیلتر اجباری هدف لازم نیست.
 
 | Query | پیش‌فرض | توضیح |
 |-------|---------|--------|
-| `post_id` | — | UUID |
+| `commentable_type` | — | `doctor` \| `post` \| `workshop` |
+| `commentable_id` | — | UUID هدف |
 | `approved` | — | boolean |
+| `phone` | — | جستجوی جزئی روی شماره |
+| `search` | — | جستجو در نام، نام‌خانوادگی، متن، تلفن |
 | `per_page` | `20` | — |
 | `page` | `1` | — |
 
-**پاسخ `200`:** pagination — `CommentResource` (شامل `email`)
+**پاسخ `200`:** pagination — `CommentResource` **شامل `phone`**
 
 ### جزئیات
 
@@ -1051,12 +1059,23 @@ Content-Type: application/json
 
 | فیلد | توضیح |
 |------|--------|
+| `first_name` | در صورت ارسال الزامی |
+| `last_name` | در صورت ارسال الزامی |
+| `phone` | nullable، حداکثر ۲۰ |
 | `body` | در صورت ارسال الزامی |
-| `author_name` | nullable، حداکثر ۲۵۵ |
-| `email` | nullable، email |
+| `rating` | ۱ تا ۵ |
 | `approved` | boolean |
 
 **پاسخ `200`**
+
+### تأیید / لغو تأیید
+
+```http
+PATCH /comments/{comment}/approve
+PATCH /comments/{comment}/unapprove
+```
+
+**پاسخ `200`** با `CommentResource` به‌روزشده.
 
 ### حذف
 
@@ -1066,7 +1085,7 @@ DELETE /comments/{comment}
 
 **پاسخ `204`**
 
-> ثبت عمومی: `POST /comments`
+> ثبت عمومی و فهرست عمومی تأییدشده‌ها: [نظرات و امتیازها](../public/README.md#نظرات-و-امتیازها)
 
 ---
 

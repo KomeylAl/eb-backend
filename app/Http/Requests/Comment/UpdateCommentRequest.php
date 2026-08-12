@@ -11,12 +11,17 @@ class UpdateCommentRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
+            'first_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'last_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'body' => ['sometimes', 'required', 'string'],
-            'author_name' => ['nullable', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'rating' => ['sometimes', 'required', 'integer', 'min:1', 'max:5'],
             'approved' => ['sometimes', 'boolean'],
         ];
     }

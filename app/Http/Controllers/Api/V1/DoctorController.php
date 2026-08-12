@@ -80,7 +80,15 @@ class DoctorController extends Controller
     {
         abort_unless($doctor->isActingAsDoctor(), 404);
 
-        $doctor->load(['doctorProfile', 'departments', 'resume', 'doctorResources']);
+        $doctor->load([
+            'doctorProfile',
+            'departments',
+            'resume',
+            'doctorResources',
+            'receivedComments' => fn ($q) => $q->approved()->orderByDesc('created_at'),
+        ])
+            ->loadCount(['receivedComments as comments_count' => fn ($q) => $q->approved()])
+            ->loadAvg(['receivedComments as rating_avg' => fn ($q) => $q->approved()], 'rating');
 
         return ApiResponse::success(DoctorResource::make($doctor));
     }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 
 class Workshop extends Model
@@ -43,6 +44,11 @@ class Workshop extends Model
         return $this->belongsToMany(Participant::class, 'participant_workshop')
             ->withPivot(['registered_at', 'approved', 'joined_at'])
             ->withTimestamps();
+    }
+
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
     }
 
     public function getImageUrlAttribute(): ?string

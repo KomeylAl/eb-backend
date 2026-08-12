@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Workshop;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Workshop */
+/** @mixin Workshop */
 class WorkshopResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -25,6 +26,9 @@ class WorkshopResource extends JsonResource
             'image_url' => $this->image_url,
             'sessions' => WorkshopSessionResource::collection($this->whenLoaded('sessions')),
             'participants' => ParticipantResource::collection($this->whenLoaded('participants')),
+            'comments' => CommentResource::collection($this->whenLoaded('comments')),
+            'comments_count' => $this->when(isset($this->comments_count), $this->comments_count),
+            'rating_avg' => $this->when(isset($this->rating_avg), $this->rating_avg !== null ? round((float) $this->rating_avg, 2) : null),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

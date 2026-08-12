@@ -53,11 +53,13 @@ return new class extends Migration
 
         Schema::create('comments', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('post_id')->constrained('posts')->cascadeOnDelete();
+            $table->uuidMorphs('commentable');
             $table->foreignUuid('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('phone', 20)->nullable();
             $table->text('body');
-            $table->string('author_name')->nullable();
-            $table->string('email')->nullable();
+            $table->unsignedTinyInteger('rating');
             $table->boolean('approved')->default(false);
             $table->timestamps();
         });

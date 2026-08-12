@@ -18,9 +18,9 @@ http://localhost:8000/api/v1
 
 | راهنما | مخاطب | توضیح |
 |--------|--------|--------|
-| [APIهای عمومی و مشترک](./public/README.md) | سایت عمومی، همه کاربران | ورود، محتوای عمومی، ثبت ارزیابی و کامنت، اعلان‌های مشترک |
-| [پنل پزشک / تراپیست](./doctor/README.md) | پزشک (`type: doctor`) | نوبت‌ها، رزومه، منابع، ارزیابی‌ها |
-| [پنل ادمین](./admin/README.md) | ادمین (`type: admin`) | مدیریت کاربران، نوبت‌ها، کارگاه‌ها، مالی، پشتیبان‌گیری و ... |
+| [APIهای عمومی و مشترک](./public/README.md) | سایت عمومی، همه کاربران | ورود، محتوای عمومی، ثبت ارزیابی و نظر/امتیاز، اعلان‌های مشترک |
+| [پنل پزشک / تراپیست](./doctor/README.md) | پزشک (`type: doctor`) | نوبت‌ها، رزومه، منابع، ارزیابی‌ها، نظرات تأییدشده |
+| [پنل ادمین](./admin/README.md) | ادمین (`type: admin`) | مدیریت کاربران، نوبت‌ها، کارگاه‌ها، مالی، تأیید نظرات، پشتیبان‌گیری و ... |
 | [پنل حسابداری](./accounting/README.md) | حسابدار / ادمین مالی | وضعیت API مالی، مدل واقعی پرداخت، محدودیت‌ها و roadmap ایمن |
 
 ---
@@ -201,15 +201,15 @@ GET /api/v1/doctors/{doctor}
 
 ### عمومی (بدون توکن)
 
-`about`, `departments`, `doctors`, `categories`, `tags`, `posts`, `workshops`, `POST assessments`, `POST comments`, `POST auth/login`
+`about`, `departments`, `doctors`, `categories`, `tags`, `posts`, `workshops`, `POST assessments`, `GET/POST comments`, `POST auth/login`
 
 ### مشترک (با توکن — همه نقش‌ها)
 
-`auth/me`, `auth/logout`, `notifications`, `notifications/unread`, `notifications/{id}/read`
+`auth/me`, `auth/logout`, `notifications`, `notifications/unread`, `notifications/{id}/read`, `comments/mine`
 
 ### پزشک (`type: doctor`)
 
-`doctor/appointments`, `doctor/resume`, `doctor/resources`, `doctor/assessments`, `doctor/notifications`
+`doctor/appointments`, `doctor/resume`, `doctor/resources`, `doctor/assessments`, `doctor/notifications`, `doctor/comments`
 
 ### ادمین (`type: admin`)
 

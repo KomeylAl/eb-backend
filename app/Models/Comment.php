@@ -2,20 +2,28 @@
 
 namespace App\Models;
 
+use Database\Factories\CommentFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Comment extends Model
 {
-    use HasUuids;
+    /** @use HasFactory<CommentFactory> */
+    use HasFactory, HasUuids;
 
     protected $fillable = [
-        'post_id',
+        'commentable_type',
+        'commentable_id',
         'user_id',
+        'first_name',
+        'last_name',
+        'phone',
         'body',
-        'author_name',
-        'email',
+        'rating',
         'approved',
     ];
 
@@ -23,16 +31,31 @@ class Comment extends Model
     {
         return [
             'approved' => 'boolean',
+            'rating' => 'integer',
         ];
     }
 
-    public function post(): BelongsTo
+    public function commentable(): MorphTo
     {
-        return $this->belongsTo(Post::class);
+        return $this->morphTo();
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getAuthorFullNameAttribute(): string
+    {
+        return trim($this->first_name.' '.$this->last_name);
+    }
+
+    /**
+     * @param  Builder<Comment>  $query
+     * @return Builder<Comment>
+     */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('approved', true);
     }
 }

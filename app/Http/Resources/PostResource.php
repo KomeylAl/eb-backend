@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Post */
+/** @mixin Post */
 class PostResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -26,7 +27,8 @@ class PostResource extends JsonResource
             'category' => CategoryResource::make($this->whenLoaded('category')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),
-            'comments_count' => $this->whenCounted('comments'),
+            'comments_count' => $this->when(isset($this->comments_count), $this->comments_count),
+            'rating_avg' => $this->when(isset($this->rating_avg), $this->rating_avg !== null ? round((float) $this->rating_avg, 2) : null),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
