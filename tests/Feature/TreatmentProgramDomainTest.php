@@ -152,6 +152,45 @@ class TreatmentProgramDomainTest extends TestCase
             ->assertJsonValidationErrors(['room_id']);
     }
 
+    public function test_program_show_includes_sessions_homeworks_and_progress(): void
+    {
+        $admin = User::factory()->admin(AdminRole::Boss)->create();
+        $doctor = User::factory()->doctor()->create();
+        $client = User::factory()->client()->create();
+
+        $program = TreatmentProgram::query()->create([
+            'client_id' => $client->id,
+            'doctor_id' => $doctor->id,
+            'title' => 'Progress program',
+            'status' => TreatmentProgramStatus::Active,
+            'started_at' => now()->toDateString(),
+        ]);
+
+        Sanctum::actingAs($admin);
+        $appointmentId = $this->postJson('/api/v1/appointments', [
+            'treatment_program_id' => $program->id,
+            'doctor_id' => $doctor->id,
+            'client_id' => $client->id,
+            'date' => now()->toDateString(),
+            'time' => '09:00',
+            'amount' => 40000,
+            'status' => AppointmentStatus::Pending->value,
+            'payment_status' => PaymentStatus::Paid->value,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($doctor);
+        $this->postJson('/api/v1/doctor/appointments/'.$appointmentId.'/homeworks', [
+            'type' => HomeworkType::Text->value,
+            'title' => 'Breathing',
+        ])->assertCreated();
+
+        $this->getJson('/api/v1/doctor/treatment-programs/'.$program->id)
+            ->assertOk()
+            ->assertJsonPath('data.progress.sessions_total', 1)
+            ->assertJsonPath('data.progress.homeworks_total', 1)
+            ->assertJsonPath('data.appointments.0.homeworks.0.title', 'Breathing');
+    }
+
     public function test_doctor_program_medical_record_access(): void
     {
         $doctor = User::factory()->doctor()->create();

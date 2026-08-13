@@ -47,6 +47,10 @@ class TreatmentProgramController extends Controller
                     ->orWhereHas('client', function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
                             ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('doctor', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
                     });
             });
         }
@@ -88,7 +92,16 @@ class TreatmentProgramController extends Controller
     {
         $this->authorizeProgramAccess($treatmentProgram);
 
-        $treatmentProgram->load(['client', 'doctor', 'medicalRecord.images'])->loadCount('appointments');
+        $treatmentProgram->load([
+            'client',
+            'doctor',
+            'medicalRecord.images',
+            'appointments' => function ($query) {
+                $query->with(['homeworks', 'room', 'doctors', 'clients', 'payment'])
+                    ->orderByDesc('date')
+                    ->orderByDesc('time');
+            },
+        ])->loadCount('appointments');
 
         return ApiResponse::success(TreatmentProgramResource::make($treatmentProgram));
     }
