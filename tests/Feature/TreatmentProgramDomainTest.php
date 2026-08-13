@@ -152,6 +152,55 @@ class TreatmentProgramDomainTest extends TestCase
             ->assertJsonValidationErrors(['room_id']);
     }
 
+    public function test_admin_can_delete_program_and_related_data(): void
+    {
+        $admin = User::factory()->admin(AdminRole::Boss)->create();
+        $doctor = User::factory()->doctor()->create();
+        $client = User::factory()->client()->create();
+
+        $program = TreatmentProgram::query()->create([
+            'client_id' => $client->id,
+            'doctor_id' => $doctor->id,
+            'title' => 'To delete',
+            'status' => TreatmentProgramStatus::Active,
+            'started_at' => now()->toDateString(),
+        ]);
+
+        MedicalRecord::query()->create([
+            'treatment_program_id' => $program->id,
+            'client_id' => $client->id,
+            'doctor_id' => $doctor->id,
+            'record_number' => 'REC-DEL-1',
+        ]);
+
+        Sanctum::actingAs($admin);
+        $appointmentId = $this->postJson('/api/v1/appointments', [
+            'treatment_program_id' => $program->id,
+            'doctor_id' => $doctor->id,
+            'client_id' => $client->id,
+            'date' => now()->toDateString(),
+            'time' => '15:00',
+            'amount' => 10000,
+            'status' => AppointmentStatus::Pending->value,
+            'payment_status' => PaymentStatus::Paid->value,
+        ])->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($doctor);
+        $this->postJson('/api/v1/doctor/appointments/'.$appointmentId.'/homeworks', [
+            'type' => HomeworkType::Text->value,
+            'title' => 'Will be deleted',
+        ])->assertCreated();
+
+        Sanctum::actingAs($admin);
+        $this->deleteJson('/api/v1/treatment-programs/'.$program->id)
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('treatment_programs', ['id' => $program->id]);
+        $this->assertDatabaseMissing('medical_records', ['treatment_program_id' => $program->id]);
+        $this->assertDatabaseMissing('appointments', ['id' => $appointmentId]);
+        $this->assertDatabaseMissing('homeworks', ['title' => 'Will be deleted']);
+    }
+
     public function test_program_show_includes_sessions_homeworks_and_progress(): void
     {
         $admin = User::factory()->admin(AdminRole::Boss)->create();

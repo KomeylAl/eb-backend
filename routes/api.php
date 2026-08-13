@@ -127,6 +127,7 @@ Route::prefix('v1')->group(function () {
             Route::get('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'show']);
             Route::patch('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'update']);
             Route::put('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'update']);
+            Route::delete('treatment-programs/{treatment_program}', [TreatmentProgramController::class, 'destroy']);
 
             Route::get('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'showForProgram']);
             Route::post('treatment-programs/{treatment_program}/medical-record', [MedicalRecordController::class, 'upsertForProgram']);

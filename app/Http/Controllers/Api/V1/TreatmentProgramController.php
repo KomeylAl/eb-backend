@@ -9,10 +9,12 @@ use App\Http\Requests\TreatmentProgram\StoreTreatmentProgramRequest;
 use App\Http\Requests\TreatmentProgram\UpdateTreatmentProgramRequest;
 use App\Http\Resources\TreatmentProgramResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Appointment;
 use App\Models\TreatmentProgram;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TreatmentProgramController extends Controller
 {
@@ -112,7 +114,14 @@ class TreatmentProgramController extends Controller
     ): JsonResponse {
         $this->authorizeProgramAccess($treatmentProgram, adminOnly: true);
 
-        $treatmentProgram->update($request->validated());
+        $data = $request->validated();
+        $treatmentProgram->update($data);
+
+        if (! empty($data['doctor_id'])) {
+            $treatmentProgram->medicalRecord?->update([
+                'doctor_id' => $data['doctor_id'],
+            ]);
+        }
 
         return ApiResponse::success(
             TreatmentProgramResource::make(
@@ -120,6 +129,23 @@ class TreatmentProgramController extends Controller
             ),
             'Treatment program updated successfully.',
         );
+    }
+
+    public function destroy(TreatmentProgram $treatmentProgram): JsonResponse
+    {
+        $this->authorizeProgramAccess($treatmentProgram, adminOnly: true);
+
+        DB::transaction(function () use ($treatmentProgram) {
+            // appointments.treatment_program_id uses nullOnDelete; delete sessions explicitly
+            // so payments/homeworks/pivot cascade with the appointment rows.
+            Appointment::query()
+                ->where('treatment_program_id', $treatmentProgram->id)
+                ->delete();
+
+            $treatmentProgram->delete();
+        });
+
+        return ApiResponse::noContent();
     }
 
     private function authorizeProgramAccess(TreatmentProgram $program, bool $adminOnly = false): void

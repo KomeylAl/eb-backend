@@ -4,6 +4,7 @@ namespace App\Http\Requests\MedicalRecord;
 
 use App\Models\MedicalRecord;
 use App\Models\TreatmentProgram;
+use App\Support\DoctorUser;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,7 +35,8 @@ class UpsertMedicalRecordRequest extends FormRequest
             'reference_source' => ['nullable', 'string', 'max:255'],
             'admission_date' => ['nullable', 'date'],
             'visit_date' => ['nullable', 'date'],
-            'supervisor_id' => ['nullable', 'uuid', 'exists:users,id'],
+            'doctor_id' => ['nullable', 'uuid', DoctorUser::existsRule()],
+            'supervisor_id' => ['nullable', 'uuid', DoctorUser::existsRule()],
             'admin_id' => ['nullable', 'uuid', 'exists:users,id'],
             'chief_complaints' => ['nullable', 'string'],
             'present_illness' => ['nullable', 'string'],

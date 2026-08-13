@@ -50,6 +50,48 @@ class MedicalRecordTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_change_doctor_on_medical_record(): void
+    {
+        $admin = User::factory()->admin(AdminRole::Boss)->create();
+        $client = User::factory()->client()->create();
+        $doctor = User::factory()->doctor()->create();
+        $otherDoctor = User::factory()->doctor()->create();
+
+        $program = TreatmentProgram::query()->create([
+            'client_id' => $client->id,
+            'doctor_id' => $doctor->id,
+            'title' => 'Program',
+            'status' => TreatmentProgramStatus::Active,
+            'started_at' => now()->toDateString(),
+        ]);
+
+        MedicalRecord::query()->create([
+            'treatment_program_id' => $program->id,
+            'client_id' => $client->id,
+            'doctor_id' => $doctor->id,
+            'record_number' => 'REC-DOC-CHANGE',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson('/api/v1/treatment-programs/'.$program->id.'/medical-record', [
+            'record_number' => 'REC-DOC-CHANGE',
+            'doctor_id' => $otherDoctor->id,
+            'chief_complaints' => 'Updated',
+        ])->assertCreated()
+            ->assertJsonPath('data.doctor_id', $otherDoctor->id);
+
+        $this->assertDatabaseHas('treatment_programs', [
+            'id' => $program->id,
+            'doctor_id' => $otherDoctor->id,
+        ]);
+
+        $this->assertDatabaseHas('medical_records', [
+            'treatment_program_id' => $program->id,
+            'doctor_id' => $otherDoctor->id,
+        ]);
+    }
+
     public function test_doctor_can_view_and_update_clinical_fields_for_program(): void
     {
         $doctor = User::factory()->doctor()->create();

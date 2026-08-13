@@ -58,6 +58,11 @@ class UpsertMedicalRecordAction
                 'diagnosis',
             ])->all();
 
+            if (! empty($data['doctor_id']) && $data['doctor_id'] !== $program->doctor_id) {
+                $program->update(['doctor_id' => $data['doctor_id']]);
+                $program->refresh();
+            }
+
             $payload['treatment_program_id'] = $program->id;
             $payload['client_id'] = $program->client_id;
             $payload['doctor_id'] = $program->doctor_id;
