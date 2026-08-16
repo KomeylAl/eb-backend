@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\AppNotification;
 use App\Models\CourseClass;
+use App\Support\DevServeCommand;
+use Illuminate\Foundation\Console\ServeCommand as LaravelServeCommand;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -11,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->extend(
+            LaravelServeCommand::class,
+            fn () => new DevServeCommand,
+        );
     }
 
     public function boot(): void

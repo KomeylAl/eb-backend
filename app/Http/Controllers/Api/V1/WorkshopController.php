@@ -8,12 +8,14 @@ use App\Http\Requests\Workshop\UpdateWorkshopRequest;
 use App\Http\Resources\WorkshopResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Workshop;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class WorkshopController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Workshop::query();
@@ -48,10 +50,17 @@ class WorkshopController extends Controller
 
     public function store(StoreWorkshopRequest $request): JsonResponse
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except(['image', 'image_media_id']);
 
-        if ($request->hasFile('image')) {
-            $data['img_path'] = $request->file('image')->store('workshops', 'public');
+        $path = $this->files->assign(
+            'workshops',
+            $request->file('image'),
+            $request->validated('image_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['img_path'] = $path;
         }
 
         $workshop = Workshop::query()->create($data);
@@ -77,13 +86,17 @@ class WorkshopController extends Controller
 
     public function update(UpdateWorkshopRequest $request, Workshop $workshop): JsonResponse
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except(['image', 'image_media_id']);
 
-        if ($request->hasFile('image')) {
-            if ($workshop->img_path) {
-                Storage::disk('public')->delete($workshop->img_path);
-            }
-            $data['img_path'] = $request->file('image')->store('workshops', 'public');
+        $path = $this->files->assign(
+            'workshops',
+            $request->file('image'),
+            $request->validated('image_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['img_path'] = $path;
         }
 
         $workshop->update($data);
@@ -96,10 +109,6 @@ class WorkshopController extends Controller
 
     public function destroy(Workshop $workshop): JsonResponse
     {
-        if ($workshop->img_path) {
-            Storage::disk('public')->delete($workshop->img_path);
-        }
-
         $workshop->delete();
 
         return ApiResponse::noContent();

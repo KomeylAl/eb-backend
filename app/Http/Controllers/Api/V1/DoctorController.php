@@ -17,13 +17,15 @@ use App\Http\Resources\DoctorResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Appointment;
 use App\Models\User;
+use App\Services\FileService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class DoctorController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = User::query()
@@ -110,17 +112,12 @@ class DoctorController extends Controller
     {
         abort_unless($doctor->isActingAsDoctor(), 404);
 
-        $avatar = $doctor->doctorProfile?->avatar;
-        if ($avatar) {
-            Storage::disk('public')->delete($avatar);
-        }
+        $this->files->deleteByPath($doctor->doctorProfile?->avatar);
 
         $doctor->loadMissing('doctorResources');
 
         foreach ($doctor->doctorResources as $resource) {
-            if ($resource->file_path) {
-                Storage::disk('public')->delete($resource->file_path);
-            }
+            $this->files->deleteByPath($resource->file_path);
         }
 
         // Never delete an admin account via the doctors endpoint; only strip doctor data.
@@ -130,9 +127,7 @@ class DoctorController extends Controller
             }
 
             $resume = $doctor->resume;
-            if ($resume?->file_path) {
-                Storage::disk('public')->delete($resume->file_path);
-            }
+            $this->files->deleteByPath($resume?->file_path);
             $resume?->delete();
 
             $doctor->departments()->detach();

@@ -24,6 +24,8 @@ class StoreWorkshopRequest extends FormRequest
             'week_day' => ['nullable', 'string', 'max:50'],
             'time' => ['nullable', 'string', 'max:50'],
             'image' => ['nullable', 'image', 'max:5120'],
+            'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
+            'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
     }
 }

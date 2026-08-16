@@ -7,11 +7,13 @@ use App\Http\Requests\About\UpsertAboutRequest;
 use App\Http\Resources\AboutResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\About;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Storage;
 
 class AboutController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function index(): JsonResponse
     {
         $about = About::query()->first();
@@ -25,14 +27,18 @@ class AboutController extends Controller
 
     public function upsert(UpsertAboutRequest $request): JsonResponse
     {
-        $data = $request->safe()->except('logo');
+        $data = $request->safe()->except(['logo', 'logo_media_id']);
         $about = About::query()->first();
 
-        if ($request->hasFile('logo')) {
-            if ($about?->logo) {
-                Storage::disk('public')->delete($about->logo);
-            }
-            $data['logo'] = $request->file('logo')->store('about', 'public');
+        $path = $this->files->assign(
+            'about',
+            $request->file('logo'),
+            $request->validated('logo_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['logo'] = $path;
         }
 
         if ($about) {

@@ -19,6 +19,7 @@ class StoreDepartmentRequest extends FormRequest
             'excerpt' => ['nullable', 'string'],
             'content' => ['required', 'string'],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'thumbnail_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
     }
 }

@@ -5,12 +5,15 @@ namespace App\Actions\Doctor;
 use App\Enums\UserType;
 use App\Models\DoctorProfile;
 use App\Models\User;
+use App\Services\FileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CreateDoctorAction
 {
+    public function __construct(private FileService $files) {}
+
     public function execute(array $data, ?UploadedFile $avatar = null): User
     {
         return DB::transaction(function () use ($data, $avatar) {
@@ -28,10 +31,11 @@ class CreateDoctorAction
 
             $doctor = User::query()->create($userPayload);
 
-            $avatarPath = null;
-            if ($avatar) {
-                $avatarPath = $avatar->store('doctor_avatars', 'public');
-            }
+            $avatarPath = $this->files->assign(
+                'doctor_avatars',
+                $avatar,
+                $data['avatar_media_id'] ?? null,
+            );
 
             $maxSortOrder = DoctorProfile::query()->max('sort_order');
             $sortOrder = array_key_exists('sort_order', $data)

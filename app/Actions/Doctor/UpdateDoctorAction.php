@@ -3,13 +3,15 @@
 namespace App\Actions\Doctor;
 
 use App\Models\User;
+use App\Services\FileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class UpdateDoctorAction
 {
+    public function __construct(private FileService $files) {}
+
     public function execute(User $doctor, array $data, ?UploadedFile $avatar = null): User
     {
         return DB::transaction(function () use ($doctor, $data, $avatar) {
@@ -40,11 +42,14 @@ class UpdateDoctorAction
                 $profilePayload['sort_order'] = $data['sort_order'];
             }
 
-            if ($avatar) {
-                if ($profile->avatar) {
-                    Storage::disk('public')->delete($profile->avatar);
-                }
-                $profilePayload['avatar'] = $avatar->store('doctor_avatars', 'public');
+            $avatarPath = $this->files->assign(
+                'doctor_avatars',
+                $avatar,
+                $data['avatar_media_id'] ?? null,
+            );
+
+            if ($avatarPath) {
+                $profilePayload['avatar'] = $avatarPath;
             }
 
             $profile->fill($profilePayload);

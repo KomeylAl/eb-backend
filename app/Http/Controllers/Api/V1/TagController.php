@@ -8,12 +8,14 @@ use App\Http\Requests\Tag\UpdateTagRequest;
 use App\Http\Resources\TagResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Tag;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class TagController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Tag::query()->withCount('posts');
@@ -44,10 +46,17 @@ class TagController extends Controller
 
     public function store(StoreTagRequest $request): JsonResponse
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except(['image', 'image_media_id']);
 
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('tags', 'public');
+        $path = $this->files->assign(
+            'tags',
+            $request->file('image'),
+            $request->validated('image_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['image'] = $path;
         }
 
         $tag = Tag::query()->create($data);
@@ -67,13 +76,17 @@ class TagController extends Controller
 
     public function update(UpdateTagRequest $request, Tag $tag): JsonResponse
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except(['image', 'image_media_id']);
 
-        if ($request->hasFile('image')) {
-            if ($tag->image) {
-                Storage::disk('public')->delete($tag->image);
-            }
-            $data['image'] = $request->file('image')->store('tags', 'public');
+        $path = $this->files->assign(
+            'tags',
+            $request->file('image'),
+            $request->validated('image_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['image'] = $path;
         }
 
         $tag->update($data);
@@ -86,10 +99,6 @@ class TagController extends Controller
 
     public function destroy(Tag $tag): JsonResponse
     {
-        if ($tag->image) {
-            Storage::disk('public')->delete($tag->image);
-        }
-
         $tag->delete();
 
         return ApiResponse::noContent();

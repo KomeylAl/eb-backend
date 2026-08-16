@@ -19,6 +19,7 @@ class StoreCategoryRequest extends FormRequest
             'excerpt' => ['nullable', 'string'],
             'content' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
     }
 }

@@ -27,6 +27,7 @@ class UpdateDepartmentRequest extends FormRequest
             'excerpt' => ['nullable', 'string'],
             'content' => ['sometimes', 'string'],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'thumbnail_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
     }
 }

@@ -22,6 +22,7 @@ class UpsertAboutRequest extends FormRequest
             'latitude' => ['nullable', 'string', 'max:50'],
             'longitude' => ['nullable', 'string', 'max:50'],
             'logo' => ['nullable', 'image', 'max:5120'],
+            'logo_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
     }
 }

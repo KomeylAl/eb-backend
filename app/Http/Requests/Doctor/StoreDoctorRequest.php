@@ -35,6 +35,7 @@ class StoreDoctorRequest extends FormRequest
             'card_number' => ['nullable', 'string', 'max:16', 'unique:doctor_profiles,card_number'],
             'medical_number' => ['nullable', 'string', 'max:16', 'unique:doctor_profiles,medical_number'],
             'avatar' => ['nullable', 'image', 'max:2048'],
+            'avatar_media_id' => ['nullable', 'uuid', 'exists:media,id'],
             'days' => ['nullable', 'array'],
             'times' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer', 'min:0'],

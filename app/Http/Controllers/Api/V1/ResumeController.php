@@ -8,12 +8,14 @@ use App\Http\Resources\ResumeResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Resume;
 use App\Models\User;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ResumeController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function showSelf(Request $request): JsonResponse
     {
         return $this->show($request->user());
@@ -46,10 +48,12 @@ class ResumeController extends Controller
         $existing = Resume::query()->where('doctor_id', $doctor->id)->first();
 
         if ($request->hasFile('file')) {
-            if ($existing?->file_path) {
-                Storage::disk('public')->delete($existing->file_path);
-            }
-            $data['file_path'] = $request->file('file')->store('doctor_resumes', 'public');
+            $this->files->deleteByPath($existing?->file_path);
+            $data['file_path'] = $this->files->store(
+                $request->file('file'),
+                'doctor_resumes',
+                uploadedBy: $request->user()?->id,
+            )->path;
         }
 
         $resume = Resume::query()->updateOrCreate(

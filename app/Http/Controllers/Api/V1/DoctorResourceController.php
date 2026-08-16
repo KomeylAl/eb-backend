@@ -10,12 +10,14 @@ use App\Http\Resources\DoctorResourceItemResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\DoctorResource;
 use App\Models\User;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class DoctorResourceController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     private const ALLOWED_SORT_COLUMNS = ['created_at', 'updated_at', 'title', 'type'];
 
     public function indexSelf(Request $request): JsonResponse
@@ -102,7 +104,11 @@ class DoctorResourceController extends Controller
         }
 
         if ($type === ResourceType::File && $request->hasFile('file')) {
-            $data['file_path'] = $request->file('file')->store('doctor_resources', 'public');
+            $data['file_path'] = $this->files->store(
+                $request->file('file'),
+                'doctor_resources',
+                uploadedBy: $request->user()?->id,
+            )->path;
         }
 
         $resource = DoctorResource::query()->create($data);
@@ -135,7 +141,7 @@ class DoctorResourceController extends Controller
             }
 
             if ($doctorResource->file_path) {
-                Storage::disk('public')->delete($doctorResource->file_path);
+                $this->files->deleteByPath($doctorResource->file_path);
             }
             $data['file_path'] = null;
         }
@@ -144,10 +150,12 @@ class DoctorResourceController extends Controller
             $data['link'] = null;
 
             if ($request->hasFile('file')) {
-                if ($doctorResource->file_path) {
-                    Storage::disk('public')->delete($doctorResource->file_path);
-                }
-                $data['file_path'] = $request->file('file')->store('doctor_resources', 'public');
+                $this->files->deleteByPath($doctorResource->file_path);
+                $data['file_path'] = $this->files->store(
+                    $request->file('file'),
+                    'doctor_resources',
+                    uploadedBy: $request->user()?->id,
+                )->path;
             }
         }
 
@@ -164,9 +172,7 @@ class DoctorResourceController extends Controller
         abort_unless($doctor->isActingAsDoctor(), 404);
         abort_unless($doctorResource->doctor_id === $doctor->id, 404);
 
-        if ($doctorResource->file_path) {
-            Storage::disk('public')->delete($doctorResource->file_path);
-        }
+        $this->files->deleteByPath($doctorResource->file_path);
 
         $doctorResource->delete();
 

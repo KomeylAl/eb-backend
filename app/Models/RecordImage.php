@@ -23,6 +23,20 @@ class RecordImage extends Model
 
     public function getUrlAttribute(): ?string
     {
-        return $this->file_path ? Storage::disk('public')->url($this->file_path) : null;
+        if (! $this->file_path) {
+            return null;
+        }
+
+        $media = Media::query()->where('path', $this->file_path)->first();
+
+        if ($media) {
+            return $media->url;
+        }
+
+        if (Storage::disk('public')->exists($this->file_path)) {
+            return Storage::disk('public')->url($this->file_path);
+        }
+
+        return null;
     }
 }

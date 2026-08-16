@@ -12,7 +12,6 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Post;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
@@ -61,9 +60,10 @@ class PostController extends Controller
 
     public function store(StorePostRequest $request, UpsertPostAction $action): JsonResponse
     {
-        $data = $request->safe()->except('thumbnail');
+        $data = $request->safe()->except(['thumbnail', 'thumbnail_media_id']);
         $data['author_id'] = $request->user()->id;
         $data['status'] = $data['status'] ?? PostStatus::Draft->value;
+        $data['thumbnail_media_id'] = $request->validated('thumbnail_media_id');
 
         $post = $action->execute(
             $data,
@@ -93,7 +93,8 @@ class PostController extends Controller
 
     public function update(UpdatePostRequest $request, Post $post, UpsertPostAction $action): JsonResponse
     {
-        $data = $request->safe()->except('thumbnail');
+        $data = $request->safe()->except(['thumbnail', 'thumbnail_media_id']);
+        $data['thumbnail_media_id'] = $request->validated('thumbnail_media_id');
 
         $post = $action->execute(
             $data,
@@ -109,10 +110,6 @@ class PostController extends Controller
 
     public function destroy(Post $post): JsonResponse
     {
-        if ($post->thumbnail) {
-            Storage::disk('public')->delete($post->thumbnail);
-        }
-
         $post->delete();
 
         return ApiResponse::noContent();

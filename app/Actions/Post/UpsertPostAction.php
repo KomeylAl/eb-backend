@@ -3,13 +3,15 @@
 namespace App\Actions\Post;
 
 use App\Models\Post;
+use App\Services\FileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class UpsertPostAction
 {
+    public function __construct(private FileService $files) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -27,11 +29,14 @@ class UpsertPostAction
                 'published_at',
             ])->all();
 
-            if ($thumbnail) {
-                if ($post?->thumbnail) {
-                    Storage::disk('public')->delete($post->thumbnail);
-                }
-                $payload['thumbnail'] = $thumbnail->store('posts', 'public');
+            $thumbnailPath = $this->files->assign(
+                'posts',
+                $thumbnail,
+                $data['thumbnail_media_id'] ?? null,
+            );
+
+            if ($thumbnailPath) {
+                $payload['thumbnail'] = $thumbnailPath;
             }
 
             if ($post) {

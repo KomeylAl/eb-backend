@@ -8,12 +8,14 @@ use App\Http\Requests\Department\UpdateDepartmentRequest;
 use App\Http\Resources\DepartmentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Department;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class DepartmentController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Department::query();
@@ -47,10 +49,17 @@ class DepartmentController extends Controller
 
     public function store(StoreDepartmentRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['thumbnail', 'thumbnail_media_id']);
 
-        if ($request->hasFile('thumbnail')) {
-            $data['thumbnail'] = $request->file('thumbnail')->store('department_images', 'public');
+        $path = $this->files->assign(
+            'departments',
+            $request->file('thumbnail'),
+            $request->validated('thumbnail_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['thumbnail'] = $path;
         }
 
         $department = Department::query()->create($data);
@@ -68,13 +77,17 @@ class DepartmentController extends Controller
 
     public function update(UpdateDepartmentRequest $request, Department $department): JsonResponse
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['thumbnail', 'thumbnail_media_id']);
 
-        if ($request->hasFile('thumbnail')) {
-            if ($department->thumbnail) {
-                Storage::disk('public')->delete($department->thumbnail);
-            }
-            $data['thumbnail'] = $request->file('thumbnail')->store('department_images', 'public');
+        $path = $this->files->assign(
+            'departments',
+            $request->file('thumbnail'),
+            $request->validated('thumbnail_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['thumbnail'] = $path;
         }
 
         $department->update($data);
@@ -87,10 +100,6 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department): JsonResponse
     {
-        if ($department->thumbnail) {
-            Storage::disk('public')->delete($department->thumbnail);
-        }
-
         $department->delete();
 
         return ApiResponse::noContent();

@@ -7,12 +7,15 @@ use App\Models\MedicalRecord;
 use App\Models\RecordImage;
 use App\Models\TreatmentProgram;
 use App\Models\User;
+use App\Services\FileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class UpsertMedicalRecordAction
 {
+    public function __construct(private FileService $files) {}
+
     /**
      * @param  array<string, mixed>  $data
      * @param  array<int, UploadedFile>  $images
@@ -150,10 +153,14 @@ class UpsertMedicalRecordAction
     private function storeImages(MedicalRecord $record, string $clientId, array $images): void
     {
         foreach ($images as $image) {
-            $path = $image->store('medical_records/'.$clientId, 'public');
+            $media = $this->files->store(
+                $image,
+                'medical_records',
+                ['client_id' => $clientId],
+            );
             RecordImage::query()->create([
                 'medical_record_id' => $record->id,
-                'file_path' => $path,
+                'file_path' => $media->path,
             ]);
         }
     }

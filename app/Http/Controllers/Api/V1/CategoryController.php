@@ -8,12 +8,14 @@ use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Category;
+use App\Services\FileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
+    public function __construct(private FileService $files) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Category::query()->withCount('posts');
@@ -44,10 +46,17 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): JsonResponse
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except(['image', 'image_media_id']);
 
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('categories', 'public');
+        $path = $this->files->assign(
+            'categories',
+            $request->file('image'),
+            $request->validated('image_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['image'] = $path;
         }
 
         $category = Category::query()->create($data);
@@ -67,13 +76,17 @@ class CategoryController extends Controller
 
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except(['image', 'image_media_id']);
 
-        if ($request->hasFile('image')) {
-            if ($category->image) {
-                Storage::disk('public')->delete($category->image);
-            }
-            $data['image'] = $request->file('image')->store('categories', 'public');
+        $path = $this->files->assign(
+            'categories',
+            $request->file('image'),
+            $request->validated('image_media_id'),
+            uploadedBy: $request->user()?->id,
+        );
+
+        if ($path) {
+            $data['image'] = $path;
         }
 
         $category->update($data);
@@ -86,10 +99,6 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): JsonResponse
     {
-        if ($category->image) {
-            Storage::disk('public')->delete($category->image);
-        }
-
         $category->delete();
 
         return ApiResponse::noContent();

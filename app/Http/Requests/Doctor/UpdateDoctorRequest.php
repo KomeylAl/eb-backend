@@ -65,6 +65,7 @@ class UpdateDoctorRequest extends FormRequest
                 Rule::unique('doctor_profiles', 'medical_number')->ignore($profileId),
             ],
             'avatar' => ['nullable', 'image', 'max:2048'],
+            'avatar_media_id' => ['nullable', 'uuid', 'exists:media,id'],
             'days' => ['nullable', 'array'],
             'times' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer', 'min:0'],

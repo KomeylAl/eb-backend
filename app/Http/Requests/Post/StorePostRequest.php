@@ -21,6 +21,7 @@ class StorePostRequest extends FormRequest
             'excerpt' => ['nullable', 'string'],
             'content' => ['required', 'string'],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'thumbnail_media_id' => ['nullable', 'uuid', 'exists:media,id'],
             'status' => ['nullable', Rule::enum(PostStatus::class)],
             'published_at' => ['nullable', 'date'],
             'category_id' => ['nullable', 'uuid', 'exists:categories,id'],

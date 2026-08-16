@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\V1\FinancialAdjustmentController;
 use App\Http\Controllers\Api\V1\HomeworkController;
 use App\Http\Controllers\Api\V1\InitAssessmentController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\MediaController;
+use App\Http\Controllers\Api\V1\MediaFolderController;
 use App\Http\Controllers\Api\V1\MedicalRecordController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
@@ -55,6 +57,9 @@ Route::prefix('v1')->group(function () {
     Route::post('assessments', [InitAssessmentController::class, 'store']);
     Route::get('comments', [CommentController::class, 'index']);
     Route::post('comments', [CommentController::class, 'store']);
+    Route::get('media/{media}/file', [MediaController::class, 'file'])
+        ->middleware('signed')
+        ->name('media.file');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -210,6 +215,16 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
             Route::apiResource('tags', TagController::class)->except(['index', 'show']);
             Route::apiResource('posts', PostController::class)->except(['index', 'show']);
+
+            Route::get('media/collections', [MediaController::class, 'collections']);
+            Route::get('media/folders', [MediaFolderController::class, 'index']);
+            Route::post('media/folders', [MediaFolderController::class, 'store']);
+            Route::patch('media/folders/{media_folder}', [MediaFolderController::class, 'update']);
+            Route::delete('media/folders/{media_folder}', [MediaFolderController::class, 'destroy']);
+            Route::get('media', [MediaController::class, 'index']);
+            Route::post('media', [MediaController::class, 'store']);
+            Route::patch('media/{media}', [MediaController::class, 'update']);
+            Route::delete('media/{media}', [MediaController::class, 'destroy']);
         });
     });
 });
