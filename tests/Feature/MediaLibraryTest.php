@@ -200,6 +200,29 @@ class MediaLibraryTest extends TestCase
             ->assertJsonPath('data.meta.total', 0);
     }
 
+    public function test_can_upload_to_named_collections_and_folders(): void
+    {
+        $this->actingAuthor();
+
+        $folderId = $this->postJson('/api/v1/media/folders', [
+            'name' => 'آواتارها',
+        ])->json('data.id');
+
+        foreach (['doctor_avatars', 'posts', 'workshops', 'categories'] as $collection) {
+            $response = $this->post('/api/v1/media', [
+                'file' => UploadedFile::fake()->image($collection.'.png', 100, 100),
+                'collection' => $collection,
+                'folder_id' => $folderId,
+            ], ['Accept' => 'application/json']);
+
+            $response->assertCreated()
+                ->assertJsonPath('data.collection', $collection)
+                ->assertJsonPath('data.folder_id', $folderId);
+
+            Storage::disk('public')->assertExists($response->json('data.path'));
+        }
+    }
+
     private function actingAuthor(): User
     {
         $author = User::factory()->admin(AdminRole::Author)->create();

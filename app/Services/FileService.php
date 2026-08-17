@@ -244,20 +244,38 @@ class FileService
         $sizeKb = (int) ceil(($file->getSize() ?: 0) / 1024);
 
         if ($sizeKb > $maxKb) {
-            throw new MediaException("File exceeds maximum size of {$maxKb} KB.");
+            throw new MediaException("حجم فایل بیشتر از حد مجاز ({$maxKb} کیلوبایت) است.");
         }
 
         $allowedMimes = $config['mimes'] ?? [];
         $allowedExt = $config['extensions'] ?? [];
-        $mime = $file->getMimeType() ?: $file->getClientMimeType();
-        $ext = strtolower($file->getClientOriginalExtension());
+        $mime = $this->normalizeMime($file->getMimeType() ?: $file->getClientMimeType());
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: '');
 
         $mimeOk = $allowedMimes === [] || ($mime && in_array($mime, $allowedMimes, true));
         $extOk = $allowedExt === [] || ($ext && in_array($ext, $allowedExt, true));
 
+        // Accept when either the detected mime or the file extension is allowed.
         if (! $mimeOk && ! $extOk) {
-            throw new MediaException('This file type is not allowed for the selected collection.');
+            throw new MediaException('این نوع فایل برای مجموعه انتخاب‌شده مجاز نیست.');
         }
+    }
+
+    private function normalizeMime(?string $mime): ?string
+    {
+        if (! $mime) {
+            return null;
+        }
+
+        $mime = strtolower(trim($mime));
+
+        return match ($mime) {
+            'image/jpg', 'image/pjpeg' => 'image/jpeg',
+            'image/x-png' => 'image/png',
+            'image/x-webp' => 'image/webp',
+            'application/x-zip-compressed', 'multipart/x-zip' => 'application/zip',
+            default => $mime,
+        };
     }
 
     private function uniqueFilename(string $disk, string $directory, UploadedFile $file, ?string $customName): string

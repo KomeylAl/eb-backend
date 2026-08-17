@@ -37,6 +37,18 @@ class StoreMediaRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'file.required' => 'انتخاب فایل الزامی است.',
+            'file.file' => 'آپلود فایل ناموفق بود. دوباره تلاش کنید.',
+            'file.max' => 'حجم فایل بیشتر از حد مجاز این مجموعه است.',
+            'collection.required' => 'انتخاب مجموعه الزامی است.',
+            'folder_id.uuid' => 'شناسه پوشه نامعتبر است.',
+            'folder_id.exists' => 'پوشه انتخاب‌شده پیدا نشد.',
+        ];
+    }
+
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
@@ -45,13 +57,13 @@ class StoreMediaRequest extends FormRequest
             try {
                 $config = app(FileService::class)->collection($key);
             } catch (\Throwable) {
-                $validator->errors()->add('collection', 'Unknown media collection.');
+                $validator->errors()->add('collection', 'مجموعه رسانه ناشناخته است.');
 
                 return;
             }
 
             if (empty($config['library'])) {
-                $validator->errors()->add('collection', 'This collection cannot be uploaded from the media library.');
+                $validator->errors()->add('collection', 'این مجموعه از کتابخانه رسانه قابل آپلود نیست.');
             }
         });
     }

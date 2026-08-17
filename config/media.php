@@ -40,7 +40,7 @@ return [
             'library' => true,
             'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-            'max_kb' => 2048,
+            'max_kb' => 10240,
         ],
 
         'doctor_avatars' => [
@@ -49,9 +49,9 @@ return [
             'path' => 'doctor_avatars',
             'visibility' => 'public',
             'library' => true,
-            'mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 2048,
+            'max_kb' => 10240,
         ],
 
         'workshops' => [
@@ -60,9 +60,9 @@ return [
             'path' => 'workshops',
             'visibility' => 'public',
             'library' => true,
-            'mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 5120,
+            'max_kb' => 10240,
         ],
 
         'categories' => [
@@ -71,9 +71,9 @@ return [
             'path' => 'categories',
             'visibility' => 'public',
             'library' => true,
-            'mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 2048,
+            'max_kb' => 10240,
         ],
 
         'tags' => [
@@ -82,9 +82,9 @@ return [
             'path' => 'tags',
             'visibility' => 'public',
             'library' => true,
-            'mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 2048,
+            'max_kb' => 10240,
         ],
 
         'departments' => [
@@ -93,9 +93,9 @@ return [
             'path' => 'department_images',
             'visibility' => 'public',
             'library' => true,
-            'mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 2048,
+            'max_kb' => 10240,
         ],
 
         'about' => [
@@ -106,7 +106,7 @@ return [
             'library' => true,
             'mimes' => ['image/jpeg', 'image/png', 'image/webp'],
             'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 5120,
+            'max_kb' => 10240,
         ],
 
         'doctor_resumes' => [
@@ -160,16 +160,18 @@ return [
         ],
 
         // Future: Ebraz Plus workshop files (no UI in this phase).
+        // library=false until workshop context is supplied on upload.
         'workshop_materials' => [
             'label' => 'فایل‌های کارگاه',
             'disk' => 'public',
             'path' => 'workshops/{workshop_slug}/materials',
             'visibility' => 'public',
-            'library' => true,
+            'library' => false,
             'mimes' => [
                 'application/pdf',
                 'image/jpeg', 'image/png', 'image/webp',
                 'application/zip',
+                'application/x-zip-compressed',
             ],
             'extensions' => ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'zip'],
             'max_kb' => 20480,
