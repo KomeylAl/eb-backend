@@ -223,6 +223,47 @@ class MediaLibraryTest extends TestCase
         }
     }
 
+    public function test_avatar_upload_does_not_collide_with_existing_cataloged_path(): void
+    {
+        $this->actingAuthor();
+
+        Media::query()->create([
+            'disk' => 'public',
+            'path' => 'doctor_avatars/avatar.jpg',
+            'collection' => 'doctor_avatars',
+            'original_name' => 'avatar.jpg',
+            'name' => 'avatar',
+            'mime' => 'image/jpeg',
+            'size' => 10,
+            'visibility' => 'public',
+        ]);
+
+        $response = $this->post('/api/v1/media', [
+            'file' => UploadedFile::fake()->image('avatar.jpg'),
+            'collection' => 'doctor_avatars',
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.collection', 'doctor_avatars');
+
+        $this->assertNotSame('doctor_avatars/avatar.jpg', $response->json('data.path'));
+        Storage::disk('public')->assertExists($response->json('data.path'));
+    }
+
+    public function test_heic_avatar_is_rejected_with_clear_error(): void
+    {
+        $this->actingAuthor();
+
+        $file = UploadedFile::fake()->create('photo.heic', 200, 'image/heic');
+
+        $this->post('/api/v1/media', [
+            'file' => $file,
+            'collection' => 'doctor_avatars',
+        ], ['Accept' => 'application/json'])
+            ->assertStatus(422)
+            ->assertJsonFragment(['message' => 'فرمت HEIC آیفون پشتیبانی نمی‌شود. عکس را به JPG یا PNG تبدیل کنید.']);
+    }
+
     private function actingAuthor(): User
     {
         $author = User::factory()->admin(AdminRole::Author)->create();

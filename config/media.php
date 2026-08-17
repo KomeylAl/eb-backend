@@ -49,9 +49,12 @@ return [
             'path' => 'doctor_avatars',
             'visibility' => 'public',
             'library' => true,
-            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
-            'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-            'max_kb' => 10240,
+            'mimes' => [
+                'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+                'image/jpg', 'image/pjpeg', 'image/x-png', 'image/avif',
+            ],
+            'extensions' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'jfif'],
+            'max_kb' => 20480,
         ],
 
         'workshops' => [

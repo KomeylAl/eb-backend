@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\MediaException;
 use App\Models\Media;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -47,19 +48,51 @@ class FileService
         $directory = $this->interpolate((string) $config['path'], $context);
         $filename = $this->uniqueFilename($disk, $directory, $file, $customName);
 
+        $displayName = trim((string) ($customName ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)));
+        if ($displayName === '') {
+            $displayName = 'file';
+        }
+
         $stored = $file->storeAs($directory, $filename, $disk);
 
         if (! $stored) {
-            throw new MediaException('Failed to store uploaded file.');
+            throw new MediaException('ذخیره فایل روی دیسک ناموفق بود.');
         }
 
+        try {
+            return $this->createRecord($file, $collectionKey, $config, $disk, $stored, $displayName, $folderId, $uploadedBy);
+        } catch (UniqueConstraintViolationException) {
+            $filename = $this->uniqueFilename($disk, $directory, $file, $customName);
+            $stored = $file->storeAs($directory, $filename, $disk);
+
+            if (! $stored) {
+                throw new MediaException('ذخیره فایل روی دیسک ناموفق بود.');
+            }
+
+            return $this->createRecord($file, $collectionKey, $config, $disk, $stored, $displayName, $folderId, $uploadedBy);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function createRecord(
+        UploadedFile $file,
+        string $collectionKey,
+        array $config,
+        string $disk,
+        string $stored,
+        string $displayName,
+        ?string $folderId,
+        ?string $uploadedBy,
+    ): Media {
         return Media::query()->create([
             'disk' => $disk,
             'path' => $stored,
             'collection' => $collectionKey,
             'folder_id' => $folderId,
             'original_name' => $file->getClientOriginalName(),
-            'name' => pathinfo($filename, PATHINFO_FILENAME),
+            'name' => $displayName,
             'mime' => $file->getMimeType() ?: $file->getClientMimeType(),
             'size' => $file->getSize() ?: 0,
             'visibility' => $config['visibility'] ?? 'public',
@@ -255,9 +288,14 @@ class FileService
         $mimeOk = $allowedMimes === [] || ($mime && in_array($mime, $allowedMimes, true));
         $extOk = $allowedExt === [] || ($ext && in_array($ext, $allowedExt, true));
 
+        if (in_array($ext, ['heic', 'heif'], true) || in_array($mime, ['image/heic', 'image/heif'], true)) {
+            throw new MediaException('فرمت HEIC آیفون پشتیبانی نمی‌شود. عکس را به JPG یا PNG تبدیل کنید.');
+        }
+
         // Accept when either the detected mime or the file extension is allowed.
         if (! $mimeOk && ! $extOk) {
-            throw new MediaException('این نوع فایل برای مجموعه انتخاب‌شده مجاز نیست.');
+            $allowed = implode(', ', $allowedExt ?: ['jpg', 'png', 'webp']);
+            throw new MediaException("این نوع فایل برای این مجموعه مجاز نیست. فرمت‌های مجاز: {$allowed}");
         }
     }
 
@@ -282,14 +320,23 @@ class FileService
     {
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
         $base = Str::slug($customName ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'file';
-        $filename = $base.'.'.$extension;
-        $path = trim($directory.'/'.$filename, '/');
 
-        if (! Storage::disk($disk)->exists($path)) {
+        for ($attempt = 0; $attempt < 8; $attempt++) {
+            $filename = $base.'-'.Str::lower(Str::random(8)).'.'.$extension;
+            $path = trim($directory.'/'.$filename, '/');
+
+            if (Storage::disk($disk)->exists($path)) {
+                continue;
+            }
+
+            if (Media::query()->where('disk', $disk)->where('path', $path)->exists()) {
+                continue;
+            }
+
             return $filename;
         }
 
-        return $base.'-'.Str::lower(Str::random(6)).'.'.$extension;
+        throw new MediaException('نتوانستیم نام یکتایی برای فایل بسازیم. دوباره تلاش کنید.');
     }
 
     private function uniquePath(string $disk, string $desired, string $current): string
