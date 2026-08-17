@@ -6,6 +6,7 @@ use App\Exceptions\MediaException;
 use App\Models\Media;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -46,28 +47,17 @@ class FileService
 
         $disk = $config['disk'];
         $directory = $this->interpolate((string) $config['path'], $context);
-        $filename = $this->uniqueFilename($disk, $directory, $file, $customName);
-
         $displayName = trim((string) ($customName ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)));
         if ($displayName === '') {
             $displayName = 'file';
         }
 
-        $stored = $file->storeAs($directory, $filename, $disk);
-
-        if (! $stored) {
-            throw new MediaException('ذخیره فایل روی دیسک ناموفق بود.');
-        }
+        $stored = $this->putUpload($disk, $directory, $collectionKey, $file, $customName, (string) ($config['visibility'] ?? 'public'));
 
         try {
             return $this->createRecord($file, $collectionKey, $config, $disk, $stored, $displayName, $folderId, $uploadedBy);
         } catch (UniqueConstraintViolationException) {
-            $filename = $this->uniqueFilename($disk, $directory, $file, $customName);
-            $stored = $file->storeAs($directory, $filename, $disk);
-
-            if (! $stored) {
-                throw new MediaException('ذخیره فایل روی دیسک ناموفق بود.');
-            }
+            $stored = $this->putUpload($disk, $directory, $collectionKey, $file, $customName, (string) ($config['visibility'] ?? 'public'));
 
             return $this->createRecord($file, $collectionKey, $config, $disk, $stored, $displayName, $folderId, $uploadedBy);
         }
@@ -98,6 +88,95 @@ class FileService
             'visibility' => $config['visibility'] ?? 'public',
             'uploaded_by' => $uploadedBy,
         ]);
+    }
+
+    /**
+     * Write the upload to disk. If the collection folder is not writable
+     * (common for older production dirs like doctor_avatars), fall back to a
+     * fresh directory under media/.
+     */
+    private function putUpload(
+        string $disk,
+        string $directory,
+        string $collectionKey,
+        UploadedFile $file,
+        ?string $customName,
+        string $visibility,
+    ): string {
+        $contents = $this->uploadContents($file);
+        $storage = Storage::disk($disk);
+        $directories = array_values(array_unique(array_filter([
+            $directory,
+            'media/'.$collectionKey.'/'.now()->format('Y/m'),
+        ])));
+
+        $lastError = null;
+
+        foreach ($directories as $dir) {
+            $filename = $this->uniqueFilename($disk, $dir, $file, $customName);
+            $path = trim($dir.'/'.$filename, '/');
+
+            try {
+                $made = $storage->makeDirectory($dir);
+                if (! $made && ! $storage->exists($dir)) {
+                    continue;
+                }
+            } catch (\Throwable $e) {
+                $lastError = $e;
+                Log::warning('media.mkdir_failed', ['dir' => $dir, 'disk' => $disk, 'error' => $e->getMessage()]);
+
+                continue;
+            }
+
+            foreach ([['visibility' => $visibility], []] as $options) {
+                try {
+                    $written = $storage->put($path, $contents, $options);
+
+                    if ($written || $storage->exists($path)) {
+                        return $path;
+                    }
+                } catch (\Throwable $e) {
+                    $lastError = $e;
+                    Log::warning('media.put_failed', [
+                        'path' => $path,
+                        'disk' => $disk,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($storage->exists($path)) {
+                return $path;
+            }
+        }
+
+        Log::error('media.store_failed', [
+            'collection' => $collectionKey,
+            'directory' => $directory,
+            'error' => $lastError?->getMessage(),
+        ]);
+
+        throw new MediaException('ذخیره فایل روی دیسک ناموفق بود. پوشه مقصد روی سرور قابل نوشتن نیست.');
+    }
+
+    private function uploadContents(UploadedFile $file): string
+    {
+        $realPath = $file->getRealPath();
+
+        if (is_string($realPath) && $realPath !== '' && is_readable($realPath)) {
+            $contents = file_get_contents($realPath);
+            if ($contents !== false && $contents !== '') {
+                return $contents;
+            }
+        }
+
+        $contents = $file->getContent();
+
+        if ($contents === '') {
+            throw new MediaException('فایل آپلود شده خالی یا غیرقابل‌خواندن است.');
+        }
+
+        return $contents;
     }
 
     /**

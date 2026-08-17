@@ -46,7 +46,7 @@ return [
         'doctor_avatars' => [
             'label' => 'آواتار درمانگران',
             'disk' => 'public',
-            'path' => 'doctor_avatars',
+            'path' => 'doctor_avatars/{year}/{month}',
             'visibility' => 'public',
             'library' => true,
             'mimes' => [
@@ -209,6 +209,7 @@ return [
         'doctor_resources' => 'doctor_resources',
         'medical_records' => 'medical_records',
         'documents' => 'therapist_documents',
+        'media' => 'library',
     ],
 
 ];
