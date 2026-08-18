@@ -476,6 +476,7 @@ GET /workshops
 | پارامتر | پیش‌فرض | توضیح |
 |---------|---------|--------|
 | `search` | — | `title`, `slug`, `excerpt` |
+| `type` | — | `general`, `specialized`, `webinar`, `seminar` (legacy: `special` → `specialized`) |
 | `start_date` | — | کارگاه‌هایی با `start_date >= value` |
 | `sort_by` | `created_at` | — |
 | `sort_direction` | `desc` | — |
@@ -489,6 +490,7 @@ GET /workshops
   "id": "uuid",
   "title": "عنوان",
   "slug": "slug",
+  "type": "general",
   "excerpt": null,
   "content": null,
   "organizers": null,

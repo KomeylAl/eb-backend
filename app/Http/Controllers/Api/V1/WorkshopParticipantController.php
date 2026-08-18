@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Workshop\RegisterWorkshopParticipantAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workshop\RegisterParticipantRequest;
+use App\Http\Requests\Workshop\UpdateWorkshopParticipantRequest;
 use App\Http\Resources\ParticipantResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Participant;
@@ -25,11 +26,66 @@ class WorkshopParticipantController extends Controller
         Workshop $workshop,
         RegisterWorkshopParticipantAction $action,
     ): JsonResponse {
-        $participant = $action->execute($workshop, $request->validated());
+        $data = $request->validated();
+        if ($request->has('name_en') && empty($data['english_name'])) {
+            $data['english_name'] = $request->input('name_en');
+        }
+
+        $participant = $action->execute($workshop, $data);
+
+        $participant = $workshop->participants()
+            ->where('participants.id', $participant->id)
+            ->first();
 
         return ApiResponse::created(
             ParticipantResource::make($participant),
             'Participant registered successfully.',
+        );
+    }
+
+    public function update(
+        UpdateWorkshopParticipantRequest $request,
+        Workshop $workshop,
+        Participant $participant,
+    ): JsonResponse {
+        abort_unless(
+            $workshop->participants()->where('participants.id', $participant->id)->exists(),
+            404,
+        );
+
+        $data = $request->safe()->only([
+            'name',
+            'english_name',
+            'phone',
+            'national_code',
+            'gender',
+        ]);
+
+        if ($data !== []) {
+            $participant->update($data);
+        }
+
+        if ($request->exists('approved')) {
+            $approved = $request->boolean('approved');
+            $current = $workshop->participants()
+                ->where('participants.id', $participant->id)
+                ->first();
+
+            $workshop->participants()->updateExistingPivot($participant->id, [
+                'approved' => $approved,
+                'joined_at' => $approved
+                    ? ($current?->pivot?->joined_at ?? now())
+                    : null,
+            ]);
+        }
+
+        $participant = $workshop->participants()
+            ->where('participants.id', $participant->id)
+            ->first();
+
+        return ApiResponse::success(
+            ParticipantResource::make($participant),
+            'Participant updated successfully.',
         );
     }
 

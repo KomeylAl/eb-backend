@@ -2,6 +2,7 @@
 
 use App\Exceptions\MediaException;
 use App\Http\Middleware\EnsureAdminRole;
+use App\Http\Middleware\EnsurePlusAccess;
 use App\Http\Middleware\EnsureUserType;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'user.type' => EnsureUserType::class,
             'admin.role' => EnsureAdminRole::class,
+            'participant' => EnsurePlusAccess::class,
+            'plus' => EnsurePlusAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -23,7 +23,7 @@ class AppointmentResource extends JsonResource
             'amount' => $this->amount,
             'service' => $this->service,
             'status' => $this->status?->value,
-            'session_notes' => $this->session_notes,
+            'session_notes' => $this->visibleSessionNotes($request),
             'treatment_program' => TreatmentProgramResource::make($this->whenLoaded('treatmentProgram')),
             'room' => RoomResource::make($this->whenLoaded('room')),
             'doctor' => $doctor ? [
@@ -41,5 +41,16 @@ class AppointmentResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+    }
+
+    private function visibleSessionNotes(Request $request): mixed
+    {
+        $user = $request->user();
+
+        if ($user instanceof \App\Models\User && $user->isClient()) {
+            return null;
+        }
+
+        return $this->session_notes;
     }
 }

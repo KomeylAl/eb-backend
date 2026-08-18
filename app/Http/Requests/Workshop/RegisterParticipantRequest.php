@@ -24,4 +24,11 @@ class RegisterParticipantRequest extends FormRequest
             'approved' => ['sometimes', 'boolean'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name_en') && ! $this->filled('english_name')) {
+            $this->merge(['english_name' => $this->input('name_en')]);
+        }
+    }
 }

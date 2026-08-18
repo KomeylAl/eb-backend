@@ -23,6 +23,7 @@ class HomeworkResource extends JsonResource
             'completed_at' => $this->completed_at,
             'completed_by' => $this->completed_by,
             'created_by' => $this->created_by,
+            'appointment' => PlusAppointmentResource::make($this->whenLoaded('appointment')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

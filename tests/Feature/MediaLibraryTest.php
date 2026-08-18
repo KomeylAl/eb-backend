@@ -148,14 +148,13 @@ class MediaLibraryTest extends TestCase
         $this->assertSame('documents/therapists/ali-rezaei', $path);
 
         $certPath = app(FileService::class)->interpolate(
-            config('media.collections.workshop_certificates.path'),
+            config('media.collections.workshop_certificate_assets.path'),
             [
                 'workshop_slug' => 'CBT Basics',
-                'participant_id' => 'abc-123',
             ],
         );
 
-        $this->assertSame('workshops/cbt-basics/certificates/abc-123', $certPath);
+        $this->assertSame('workshops/cbt-basics/certificate-assets', $certPath);
     }
 
     public function test_media_index_command_catalogs_existing_files(): void

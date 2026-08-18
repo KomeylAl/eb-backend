@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Workshop;
 
+use App\Enums\WorkshopType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreWorkshopRequest extends FormRequest
 {
@@ -11,11 +13,21 @@ class StoreWorkshopRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $type = WorkshopType::normalize(
+            (string) ($this->input('type') ?: WorkshopType::General->value)
+        );
+
+        $this->merge(['type' => $type]);
+    }
+
     public function rules(): array
     {
         return [
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:workshops,slug'],
+            'type' => ['required', 'string', Rule::enum(WorkshopType::class)],
             'excerpt' => ['nullable', 'string'],
             'content' => ['nullable', 'string'],
             'organizers' => ['nullable', 'string', 'max:255'],
@@ -24,7 +36,6 @@ class StoreWorkshopRequest extends FormRequest
             'week_day' => ['nullable', 'string', 'max:50'],
             'time' => ['nullable', 'string', 'max:50'],
             'image' => ['nullable', 'image', 'max:5120'],
-            'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
             'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
     }

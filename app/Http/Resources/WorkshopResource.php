@@ -15,6 +15,7 @@ class WorkshopResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
+            'type' => $this->type?->value,
             'excerpt' => $this->excerpt,
             'content' => $this->content,
             'organizers' => $this->organizers,

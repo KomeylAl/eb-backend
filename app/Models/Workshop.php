@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\WorkshopType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,6 +18,7 @@ class Workshop extends Model
     protected $fillable = [
         'title',
         'slug',
+        'type',
         'excerpt',
         'content',
         'organizers',
@@ -29,6 +32,7 @@ class Workshop extends Model
     protected function casts(): array
     {
         return [
+            'type' => WorkshopType::class,
             'start_date' => 'date',
             'end_date' => 'date',
         ];
@@ -37,6 +41,21 @@ class Workshop extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(WorkshopSession::class);
+    }
+
+    public function materials(): HasMany
+    {
+        return $this->hasMany(WorkshopMaterial::class);
+    }
+
+    public function certificateTemplate(): HasOne
+    {
+        return $this->hasOne(WorkshopCertificateTemplate::class);
+    }
+
+    public function certificates(): HasMany
+    {
+        return $this->hasMany(WorkshopCertificate::class);
     }
 
     public function participants(): BelongsToMany

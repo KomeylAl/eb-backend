@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\V1\MedicalRecordController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PaymentTransactionController;
+use App\Http\Controllers\Api\V1\PlusController;
+use App\Http\Controllers\Api\V1\PlusPortalController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\RestoreController;
 use App\Http\Controllers\Api\V1\ResumeController;
@@ -30,7 +32,9 @@ use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\SmsController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\TreatmentProgramController;
+use App\Http\Controllers\Api\V1\WorkshopCertificateController;
 use App\Http\Controllers\Api\V1\WorkshopController;
+use App\Http\Controllers\Api\V1\WorkshopMaterialController;
 use App\Http\Controllers\Api\V1\WorkshopParticipantController;
 use App\Http\Controllers\Api\V1\WorkshopSessionController;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +64,32 @@ Route::prefix('v1')->group(function () {
     Route::get('media/{media}/file', [MediaController::class, 'file'])
         ->middleware('signed')
         ->name('media.file');
+
+    // Ebraz Plus (clients and workshop participants)
+    Route::post('plus/login', [PlusController::class, 'login']);
+    Route::post('plus/otp/request', [PlusController::class, 'requestLoginOtp']);
+    Route::post('plus/otp/verify', [PlusController::class, 'verifyLoginOtp']);
+    Route::middleware(['auth:sanctum', 'plus'])->prefix('plus')->group(function () {
+        Route::post('logout', [PlusController::class, 'logout']);
+        Route::get('me', [PlusController::class, 'me']);
+        Route::get('dashboard', [PlusPortalController::class, 'dashboard']);
+        Route::get('workshops', [PlusController::class, 'workshops']);
+        Route::get('workshops/{workshop}', [PlusController::class, 'showWorkshop']);
+        Route::get('workshops/{workshop}/materials', [PlusController::class, 'materials']);
+        Route::get('workshops/{workshop}/materials/{material}/download', [PlusController::class, 'downloadMaterial']);
+        Route::get('workshops/{workshop}/certificates', [PlusController::class, 'certificates']);
+        Route::get('workshops/{workshop}/certificates/{certificate}/download', [PlusController::class, 'downloadCertificate']);
+        Route::get('certificates', [PlusController::class, 'myCertificates']);
+        Route::get('appointments', [PlusPortalController::class, 'appointments']);
+        Route::get('appointments/{appointment}', [PlusPortalController::class, 'showAppointment']);
+        Route::get('assessments', [PlusPortalController::class, 'assessments']);
+        Route::get('treatment-programs', [PlusPortalController::class, 'treatmentPrograms']);
+        Route::get('treatment-programs/{treatment_program}', [PlusPortalController::class, 'showTreatmentProgram']);
+        Route::get('homeworks', [PlusPortalController::class, 'homeworks']);
+        Route::patch('homeworks/{homework}/complete', [PlusPortalController::class, 'completeHomework']);
+        Route::post('password/otp', [PlusPortalController::class, 'requestPasswordOtp']);
+        Route::post('password', [PlusPortalController::class, 'changePassword']);
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -151,8 +181,24 @@ Route::prefix('v1')->group(function () {
 
             Route::apiResource('workshops', WorkshopController::class)->except(['index', 'show']);
             Route::apiResource('workshops.sessions', WorkshopSessionController::class);
+            Route::get('workshops/{workshop}/materials', [WorkshopMaterialController::class, 'index']);
+            Route::post('workshops/{workshop}/materials', [WorkshopMaterialController::class, 'store']);
+            Route::put('workshops/{workshop}/materials/{material}', [WorkshopMaterialController::class, 'update']);
+            Route::patch('workshops/{workshop}/materials/{material}', [WorkshopMaterialController::class, 'update']);
+            Route::delete('workshops/{workshop}/materials/{material}', [WorkshopMaterialController::class, 'destroy']);
+            Route::get('workshops/{workshop}/materials/{material}/download', [WorkshopMaterialController::class, 'download']);
+            Route::get('certificate-template-presets', [WorkshopCertificateController::class, 'templatePresets']);
+            Route::get('workshops/{workshop}/certificate-template', [WorkshopCertificateController::class, 'showTemplate']);
+            Route::post('workshops/{workshop}/certificate-template', [WorkshopCertificateController::class, 'upsertTemplate']);
+            Route::get('workshops/{workshop}/certificates', [WorkshopCertificateController::class, 'index']);
+            Route::post('workshops/{workshop}/certificates', [WorkshopCertificateController::class, 'issue']);
+            Route::post('workshops/{workshop}/certificates/upload', [WorkshopCertificateController::class, 'upload']);
+            Route::get('workshops/{workshop}/certificates/{certificate}/download', [WorkshopCertificateController::class, 'download']);
+            Route::delete('workshops/{workshop}/certificates/{certificate}', [WorkshopCertificateController::class, 'destroy']);
             Route::get('workshops/{workshop}/participants', [WorkshopParticipantController::class, 'index']);
             Route::post('workshops/{workshop}/participants', [WorkshopParticipantController::class, 'store']);
+            Route::put('workshops/{workshop}/participants/{participant}', [WorkshopParticipantController::class, 'update']);
+            Route::patch('workshops/{workshop}/participants/{participant}', [WorkshopParticipantController::class, 'update']);
             Route::delete('workshops/{workshop}/participants/{participant}', [WorkshopParticipantController::class, 'destroy']);
             Route::patch('workshops/{workshop}/participants/{participant}/approve', [WorkshopParticipantController::class, 'approve']);
             Route::patch('workshops/{workshop}/participants/{participant}/unapprove', [WorkshopParticipantController::class, 'unapprove']);

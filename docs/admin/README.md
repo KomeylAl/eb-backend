@@ -39,6 +39,8 @@ POST /auth/login
 - [اعلان‌ها](#اعلان‌ها)
 - [پیامک](#پیامک)
 - [کارگاه‌ها](#کارگاه‌ها)
+- [منابع کارگاه (مواد آموزشی)](#منابع-کارگاه-مواد-آموزشی)
+- [گواهی کارگاه](#گواهی-کارگاه)
 - [جلسات کارگاه](#جلسات-کارگاه)
 - [شرکت‌کنندگان کارگاه](#شرکت‌کنندگان-کارگاه)
 - [کلاس‌ها](#کلاس‌ها)
@@ -798,6 +800,7 @@ Content-Type: multipart/form-data
 |------|--------|--------|
 | `title` | بله | حداکثر ۲۵۵ |
 | `slug` | بله | حداکثر ۲۵۵، یکتا |
+| `type` | بله | `general`, `specialized`, `webinar`, `seminar` (پیش‌فرض در صورت خالی: `general`؛ `special` → `specialized`) |
 | `excerpt` | خیر | — |
 | `content` | خیر | — |
 | `organizers` | خیر | حداکثر ۲۵۵ |
@@ -822,6 +825,91 @@ DELETE /workshops/{workshop}
 - حذف workshop → sessions و اتصال participants حذف (participants مستقل باقی می‌مانند)
 
 > خواندن عمومی: `GET /workshops`, `GET /workshops/{workshop}`
+
+---
+
+## منابع کارگاه (مواد آموزشی)
+
+منابع فقط توسط ادمین مدیریت می‌شوند و فایل‌ها روی دیسک خصوصی ذخیره می‌گردند. مشاهده/دانلود برای شرکت‌کنندگان تأییدشده از [ابراز پلاس](../plus/README.md) انجام می‌شود.
+
+```http
+GET    /workshops/{workshop}/materials
+POST   /workshops/{workshop}/materials
+PATCH  /workshops/{workshop}/materials/{material}
+PUT    /workshops/{workshop}/materials/{material}
+DELETE /workshops/{workshop}/materials/{material}
+GET    /workshops/{workshop}/materials/{material}/download
+```
+
+### ایجاد
+
+`Content-Type: multipart/form-data` (برای فایل) یا JSON (برای لینک)
+
+| فیلد | الزامی | توضیح |
+|------|--------|--------|
+| `title` | بله | حداکثر ۲۵۵ |
+| `type` | بله | `file` یا `link` |
+| `description` | خیر | — |
+| `link` | برای `link` | URL |
+| `file` | برای `file` | pdf/pptx/docx/zip/تصویر ≤ ۲۰ MB |
+| `sort_order` | خیر | عدد |
+
+**پاسخ `201`:** `WorkshopMaterialResource`
+
+---
+
+## گواهی کارگاه
+
+قالب و رکورد صدور روی سرور ذخیره می‌شود. صدور به دو صورت است:
+
+1. **داینامیک:** قالب + `payload`؛ PDF در فرانت ساخته می‌شود  
+2. **آپلود فایل:** PDF/تصویر خصوصی برای هر شرکت‌کننده؛ دانلود از endpoint احرازهویت‌شده
+
+```http
+GET    /certificate-template-presets
+GET    /workshops/{workshop}/certificate-template
+POST   /workshops/{workshop}/certificate-template
+GET    /workshops/{workshop}/certificates
+POST   /workshops/{workshop}/certificates
+POST   /workshops/{workshop}/certificates/upload
+GET    /workshops/{workshop}/certificates/{certificate}/download
+DELETE /workshops/{workshop}/certificates/{certificate}
+```
+
+### آپلود فایل مدرک
+
+`Content-Type: multipart/form-data`
+
+| فیلد | الزامی | توضیح |
+|------|--------|--------|
+| `participant_id` | بله | شرکت‌کننده تأییدشده |
+| `file` | بله | pdf/jpg/png/webp ≤ ۲۰ MB |
+| `certificate_number` | خیر | در غیر این صورت تولید می‌شود |
+
+**پاسخ:** `WorkshopCertificateResource` با `source=uploaded` و `has_file=true`
+
+### ذخیره قالب
+
+`Content-Type: multipart/form-data`
+
+| فیلد | الزامی | توضیح |
+|------|--------|--------|
+| `template_key` | بله | `classic` \| `minimal` \| `formal` |
+| `clinic_name` | خیر | — |
+| `title` | خیر | عنوان مدرک |
+| `body_text` | خیر | متن با placeholder مثل `{{participant_name}}` |
+| `footer_text` | خیر | — |
+| `signer_name` / `signer_title` | خیر | — |
+| `logo` / `signature` | خیر | تصویر |
+| `remove_logo` / `remove_signature` | خیر | boolean |
+
+### صدور
+
+```json
+{ "participant_ids": ["uuid…"] }
+```
+
+فقط شرکت‌کنندگان **تأییدشده**. پاسخ شامل `payload` کامل برای رندر فرانت است (بدون `file_path`).
 
 ---
 

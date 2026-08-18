@@ -15,7 +15,7 @@ class ChangePasswordWithOtpAction
 
     public function execute(User $user, string $code, string $password): User
     {
-        if (! in_array($user->type, [UserType::Admin, UserType::Doctor], true) && ! $user->isActingAsDoctor()) {
+        if (! in_array($user->type, [UserType::Admin, UserType::Doctor, UserType::Client], true) && ! $user->isActingAsDoctor()) {
             throw ValidationException::withMessages([
                 'phone' => ['تغییر رمز فقط برای ادمین و درمانگر مجاز است.'],
             ]);

@@ -40,11 +40,53 @@ class WorkshopAndBlogTest extends TestCase
         $response = $this->postJson('/api/v1/workshops', [
             'title' => 'Workshop A',
             'slug' => 'workshop-a',
+            'type' => 'webinar',
             'excerpt' => 'short',
             'content' => 'long content',
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.slug', 'workshop-a');
+            ->assertJsonPath('data.slug', 'workshop-a')
+            ->assertJsonPath('data.type', 'webinar');
+    }
+
+    public function test_public_can_filter_workshops_by_type(): void
+    {
+        $admin = User::factory()->admin(AdminRole::Boss)->create();
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/workshops', [
+            'title' => 'General workshop',
+            'slug' => 'general-workshop',
+            'type' => 'general',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/workshops', [
+            'title' => 'Specialized workshop',
+            'slug' => 'specialized-workshop',
+            'type' => 'specialized',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/workshops', [
+            'title' => 'Seminar event',
+            'slug' => 'seminar-event',
+            'type' => 'seminar',
+        ])->assertCreated();
+
+        $this->getJson('/api/v1/workshops?type=specialized')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.slug', 'specialized-workshop');
+
+        // Legacy alias from older menu links
+        $this->getJson('/api/v1/workshops?type=special')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.type', 'specialized');
+
+        $this->getJson('/api/v1/workshops?type=seminar')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.slug', 'seminar-event');
     }
 }

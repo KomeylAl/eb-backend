@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\WorkshopType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workshop\StoreWorkshopRequest;
 use App\Http\Requests\Workshop\UpdateWorkshopRequest;
@@ -27,6 +28,14 @@ class WorkshopController extends Controller
                     ->orWhere('slug', 'like', "%{$search}%")
                     ->orWhere('excerpt', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('type')) {
+            $type = WorkshopType::normalize((string) $request->query('type'));
+            $allowed = array_column(WorkshopType::cases(), 'value');
+            if ($type && in_array($type, $allowed, true)) {
+                $query->where('type', $type);
+            }
         }
 
         if ($request->filled('start_date')) {
