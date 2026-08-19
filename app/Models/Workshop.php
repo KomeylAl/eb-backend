@@ -27,6 +27,7 @@ class Workshop extends Model
         'week_day',
         'time',
         'img_path',
+        'registration_open',
     ];
 
     protected function casts(): array
@@ -35,7 +36,21 @@ class Workshop extends Model
             'type' => WorkshopType::class,
             'start_date' => 'date',
             'end_date' => 'date',
+            'registration_open' => 'boolean',
         ];
+    }
+
+    public function isRegistrationAvailable(): bool
+    {
+        if (! $this->registration_open) {
+            return false;
+        }
+
+        if ($this->end_date && $this->end_date->copy()->endOfDay()->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 
     public function sessions(): HasMany

@@ -15,10 +15,22 @@ class UpdateWorkshopRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $merge = [];
+
         if ($this->filled('type')) {
-            $this->merge([
-                'type' => WorkshopType::normalize((string) $this->input('type')),
-            ]);
+            $merge['type'] = WorkshopType::normalize((string) $this->input('type'));
+        }
+
+        if ($this->has('registration_open')) {
+            $merge['registration_open'] = filter_var(
+                $this->input('registration_open'),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? true;
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
         }
     }
 
@@ -43,6 +55,7 @@ class UpdateWorkshopRequest extends FormRequest
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'week_day' => ['nullable', 'string', 'max:50'],
             'time' => ['nullable', 'string', 'max:50'],
+            'registration_open' => ['sometimes', 'boolean'],
             'image' => ['nullable', 'image', 'max:5120'],
             'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];

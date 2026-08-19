@@ -25,6 +25,8 @@ class WorkshopResource extends JsonResource
             'time' => $this->time,
             'img_path' => $this->img_path,
             'image_url' => $this->image_url,
+            'registration_open' => (bool) $this->registration_open,
+            'registration_available' => $this->isRegistrationAvailable(),
             'sessions' => WorkshopSessionResource::collection($this->whenLoaded('sessions')),
             'participants' => ParticipantResource::collection($this->whenLoaded('participants')),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),

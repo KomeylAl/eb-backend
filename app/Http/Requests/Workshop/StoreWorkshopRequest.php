@@ -19,7 +19,17 @@ class StoreWorkshopRequest extends FormRequest
             (string) ($this->input('type') ?: WorkshopType::General->value)
         );
 
-        $this->merge(['type' => $type]);
+        $merge = ['type' => $type];
+
+        if ($this->has('registration_open')) {
+            $merge['registration_open'] = filter_var(
+                $this->input('registration_open'),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? true;
+        }
+
+        $this->merge($merge);
     }
 
     public function rules(): array
@@ -35,6 +45,7 @@ class StoreWorkshopRequest extends FormRequest
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'week_day' => ['nullable', 'string', 'max:50'],
             'time' => ['nullable', 'string', 'max:50'],
+            'registration_open' => ['sometimes', 'boolean'],
             'image' => ['nullable', 'image', 'max:5120'],
             'image_media_id' => ['nullable', 'uuid', 'exists:media,id'],
         ];
