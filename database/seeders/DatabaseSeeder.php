@@ -22,5 +22,7 @@ class DatabaseSeeder extends Seeder
                 'admin_role' => AdminRole::Boss,
             ],
         );
+
+        $this->call(HeroSeeder::class);
     }
 }

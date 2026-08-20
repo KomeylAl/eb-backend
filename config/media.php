@@ -112,6 +112,17 @@ return [
             'max_kb' => 10240,
         ],
 
+        'hero' => [
+            'label' => 'هیرو صفحه اصلی',
+            'disk' => 'public',
+            'path' => 'hero',
+            'visibility' => 'public',
+            'library' => true,
+            'mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg'],
+            'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
+            'max_kb' => 10240,
+        ],
+
         'doctor_resumes' => [
             'label' => 'رزومه درمانگران',
             'disk' => 'public',
@@ -224,6 +235,7 @@ return [
         'categories' => 'categories',
         'department_images' => 'departments',
         'about' => 'about',
+        'hero' => 'hero',
         'doctor_resumes' => 'doctor_resumes',
         'doctor_resources' => 'doctor_resources',
         'medical_records' => 'medical_records',

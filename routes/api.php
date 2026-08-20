@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AboutController;
+use App\Http\Controllers\Api\V1\HeroController;
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -46,6 +47,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/otp/verify', [AuthController::class, 'verifyLoginOtp']);
 
     Route::get('about', [AboutController::class, 'index']);
+    Route::get('hero', [HeroController::class, 'index']);
     Route::get('departments', [DepartmentController::class, 'index']);
     Route::get('departments/{department}', [DepartmentController::class, 'show']);
     Route::get('doctors', [DoctorController::class, 'index']);
@@ -261,6 +263,14 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
             Route::apiResource('tags', TagController::class)->except(['index', 'show']);
             Route::apiResource('posts', PostController::class)->except(['index', 'show']);
+
+            Route::post('hero/settings', [HeroController::class, 'upsertSettings']);
+            Route::get('hero/slides', [HeroController::class, 'slides']);
+            Route::post('hero/slides', [HeroController::class, 'storeSlide']);
+            Route::put('hero/slides/reorder', [HeroController::class, 'reorderSlides']);
+            Route::get('hero/slides/{hero_slide}', [HeroController::class, 'showSlide']);
+            Route::match(['put', 'patch', 'post'], 'hero/slides/{hero_slide}', [HeroController::class, 'updateSlide']);
+            Route::delete('hero/slides/{hero_slide}', [HeroController::class, 'destroySlide']);
 
             Route::get('media/collections', [MediaController::class, 'collections']);
             Route::get('media/folders', [MediaFolderController::class, 'index']);
